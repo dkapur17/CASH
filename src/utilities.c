@@ -21,9 +21,20 @@ char OSTRING[512];
 struct pData children[MAX_CHLD_COUNT];
 
 // Method to clear the terminal
-void clear()
+int clear(char wRedir, char *outfile)
 {
-    printf("\e[1;1H\e[2J");
+    int writeFd = STDOUT;
+    if (wRedir)
+    {
+        writeFd = open(outfile, wRedir == 1 ? O_WRONLY : O_APPEND);
+        if (writeFd < 0)
+            return -1;
+    }
+    write(writeFd, "\e[1;1H\e[2J", strlen("\e[1;1H\e[2J"));
+    if (wRedir)
+        close(writeFd);
+
+    return 0;
 }
 
 // Clean out extra spaces in each command. Then execute if the cleaned command is a non-zero length string
@@ -79,39 +90,101 @@ int digitCount(long long x)
 // Case-wise execution of cleaned commands
 void execCommand(char *COMMAND, char *exitBool)
 {
+    // Checking for IO Redirection
+    int len = strlen(COMMAND);
+    char redir = 0;
+    //Redirection check
+    for (int i = 0; i < len; i++)
+        if (COMMAND[i] == '>' || COMMAND[i] == '<')
+            redir = 1;
+
+    // 0 if no stdin redirect, 1 if there is
+    char readRedir = 0;
+    // 0 if no stdout redirect, 1 if >, 2 if >>
+    char writeRedir = 0;
+
+    // Breaking the command into arguments
     char TEMP[MAX_INPUT_LEN + 1];
     strcpy(TEMP, COMMAND);
-    char *COMMAND_NAME = strtok(TEMP, " ");
-    if (!strcmp(COMMAND_NAME, "exit"))
-        *exitBool = 1;
-    else if (!strcmp(COMMAND_NAME, "clear"))
-        clear();
-    else if (!strcmp(COMMAND_NAME, "pwd"))
+
+    char *args[MAX_ARGS] = {NULL};
+    args[0] = strtok(TEMP, " ");
+    for (int i = 1; i < MAX_ARGS; i++)
     {
-        if (pwd())
+        args[i] = strtok(NULL, " ");
+        if (args[i] == NULL)
+            break;
+    }
+
+    // Location of the redirection filenames within the command
+    int infileLoc = -1;
+    int outfileLoc = -1;
+
+    // Setting redirection flags and finding filename locations
+    for (int i = 0; args[i] != NULL; i++)
+    {
+        if (!strcmp(args[i], "<"))
+        {
+            readRedir = 1;
+            infileLoc = i + 1;
+        }
+        else if (!strcmp(args[i], ">"))
+        {
+            writeRedir = 1;
+            outfileLoc = i + 1;
+        }
+        else if (!strcmp(args[i], ">>"))
+        {
+            writeRedir = 2;
+            outfileLoc = i + 1;
+        }
+    }
+
+    // Going through the commands
+    if (!strcmp(args[0], "exit"))
+        *exitBool = 1;
+    else if (!strcmp(args[0], "clear"))
+    {
+        if (clear(writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
             perrorHandle(0);
     }
-    else if (!strcmp(COMMAND_NAME, "cd"))
+    else if (!strcmp(args[0], "pwd"))
+    {
+        if (pwd(writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
+            perrorHandle(0);
+    }
+    else if (!strcmp(args[0], "cd"))
     {
         if (cd(COMMAND))
             perrorHandle(0);
     }
-    else if (!strcmp(COMMAND_NAME, "echo"))
-        echo(COMMAND);
-    else if (!strcmp(COMMAND_NAME, "ls"))
+    else if (!strcmp(args[0], "echo"))
     {
-        if (ls(COMMAND))
+        if (writeRedir != 0)
+            args[outfileLoc - 1] = NULL;
+        if (readRedir != 0)
+            args[infileLoc - 1] = NULL;
+        if (echo(args, writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
             perrorHandle(0);
     }
-    else if (!strcmp(COMMAND_NAME, "pinfo"))
+    else if (!strcmp(args[0], "ls"))
     {
-        if (pinfo(COMMAND))
+        if (writeRedir != 0)
+            args[outfileLoc - 1] = NULL;
+        if (readRedir != 0)
+            args[infileLoc - 1] = NULL;
+        if (ls(args, writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
             perrorHandle(0);
     }
-    else if (!strcmp(COMMAND_NAME, "cproc"))
+    else if (!strcmp(args[0], "pinfo"))
+    {
+        if (pinfo(args, writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
+            perrorHandle(0);
+    }
+    else if (!strcmp(args[0], "cproc"))
         cproc();
-    else if (!strcmp(COMMAND_NAME, "nightswatch"))
-        nightswatch(COMMAND);
+    else if (!strcmp(args[0], "nightswatch"))
+        nightswatch(args);
     else
     {
         if (COMMAND[strlen(COMMAND) - 1] == '&')

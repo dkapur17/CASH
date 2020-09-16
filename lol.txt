@@ -1,0 +1,37 @@
+total 620
+drwxr-xr-x  1 root root   4096 Sat Aug 29 16:54:12 2020 .
+drwxr-xr-x  1 root root   4096 Sat Aug 29 16:54:12 2020 ..
+drwxr-xr-x  1 root root   4096 Sat Jun 20 13:34:06 2020 bin
+drwxr-xr-x  1 root root   4096 Wed Mar  4 21:38:00 2020 boot
+drwxr-xr-x  1 root root   4096 Thu Sep 17 00:57:35 2020 dev
+drwxr-xr-x  1 root root   4096 Thu Sep 17 00:31:49 2020 etc
+drwxr-xr-x  1 root root   4096 Fri Apr  3 23:34:22 2020 home
+-rwxr-xr-x  1 root root 631968 Thu Jan  1 05:30:00 1970 init
+drwxr-xr-x  1 root root   4096 Fri Apr  3 23:44:54 2020 lib
+drwxr-xr-x  1 root root   4096 Wed Mar  4 21:23:08 2020 lib64
+drwx------  1 root root   4096 Wed Apr 10 22:05:05 2019 lost+found
+drwxr-xr-x  1 root root   4096 Wed Mar  4 21:22:51 2020 media
+drwxr-xr-x  1 root root   4096 Sat Jun 20 02:40:19 2020 mnt
+drwxr-xr-x  1 root root   4096 Wed Mar  4 21:22:51 2020 opt
+dr-xr-xr-x 22 root root      0 Thu Sep 17 00:31:48 2020 proc
+drwx------  1 root root   4096 Wed Mar  4 21:32:12 2020 root
+drwxr-xr-x  1 root root   4096 Thu Sep 17 00:31:49 2020 run
+drwxr-xr-x  1 root root   4096 Sat Jun 20 13:36:20 2020 sbin
+drwxr-xr-x  1 root root   4096 Wed Oct 30 17:47:43 2019 snap
+drwxr-xr-x  1 root root   4096 Wed Mar  4 21:22:51 2020 srv
+dr-xr-xr-x 12 root root      0 Thu Sep 17 00:31:48 2020 sys
+drwxrwxrwx  1 root root   4096 Thu Sep 17 03:07:38 2020 tmp
+drwxr-xr-x  1 root root   4096 Wed Mar  4 21:22:51 2020 usr
+drwxr-xr-x  1 root root   4096 Wed Mar  4 21:32:13 2020 var
+[A
+total 56
+drwxrwxrwx 1 dkapur17 dkapur17  4096 Thu Sep 17 03:07:38 2020 .
+drwxrwxrwx 1 dkapur17 dkapur17  4096 Tue Sep 15 20:25:40 2020 ..
+drwxrwxrwx 1 dkapur17 dkapur17  4096 Thu Sep 17 03:07:25 2020 .git
+-rwxrwxrwx 1 dkapur17 dkapur17 13900 Thu Sep 10 21:30:08 2020 A2_README.md
+-rwxrwxrwx 3 dkapur17 dkapur17 33192 Thu Sep 17 03:07:38 2020 cash
+-rwxrwxrwx 1 dkapur17 dkapur17  1817 Thu Sep 17 03:07:59 2020 lol.txt
+-rwxrwxrwx 1 dkapur17 dkapur17   324 Thu Sep 17 00:53:17 2020 Makefile
+drwxrwxrwx 1 dkapur17 dkapur17  4096 Thu Sep 17 03:07:38 2020 obj
+drwxrwxrwx 1 dkapur17 dkapur17  4096 Thu Sep 10 18:51:27 2020 src
+[A

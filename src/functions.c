@@ -91,10 +91,30 @@ int cd(char *COMMAND)
 }
 
 // Method to implement echo
-int echo(char *COMMAND)
+int echo(char *args[], char wRedir, char *outfile)
 {
-    char *STR = COMMAND + 5;
-    printf("%s\n", STR);
+    int stdoutBackup = dup(STDOUT);
+    FILE *op;
+    if (wRedir)
+    {
+        op = fopen(outfile, wRedir == 1 ? "w+" : "a+");
+        if (op == NULL)
+            return -1;
+        int opFd = fileno(op);
+        dup2(opFd, STDOUT);
+    }
+    for (int i = 1; args[i] != NULL; i++)
+    {
+        if (i != 1)
+            printf(" ");
+        printf("%s", args[i]);
+    }
+    printf("\n");
+    if (wRedir)
+    {
+        fclose(op);
+        dup2(stdoutBackup, STDOUT);
+    }
     return 0;
 }
 
@@ -226,24 +246,22 @@ void ls_printFileDetails(struct dirent *lsDir, struct stat fileStat, int *colLen
 }
 
 // Method to implement ls
-int ls(char *COMMAND)
+int ls(char *args[], char wRedir, char *outfile)
 {
-    // Counting the number of arguments in the string, must not exceed the limit
+    int stdoutBackup = dup(STDOUT);
+    FILE *op;
+    if (wRedir)
+    {
+        op = fopen(outfile, wRedir == 1 ? "w+" : "a+");
+        if (op == NULL)
+            return -1;
+        int opFd = fileno(op);
+        dup2(opFd, STDOUT);
+    }
+    // Counting the number of arguments in the strings
     int argCount = 0;
-    int len = strlen(COMMAND);
-    for (int i = 0; i < len; i++)
-        if (COMMAND[i] == ' ')
-            argCount++;
-
-    argCount++;
-    if (argCount > MAX_ARGS)
-        argCount = MAX_ARGS;
-
-    // Assigning one pointer to each argument
-    char *args[MAX_ARGS];
-    args[0] = strtok(COMMAND, " ");
-    for (int i = 1; i < argCount; i++)
-        args[i] = strtok(NULL, " ");
+    while (args[argCount] != NULL)
+        argCount++;
 
     // Calculating the provided flags by iterating over the assigned pointers
     char aFlag = 0;
@@ -290,7 +308,14 @@ int ls(char *COMMAND)
 
             lsDirStream = opendir(DIR_PATH);
             if (lsDirStream == NULL)
+            {
+                if (wRedir)
+                {
+                    fclose(op);
+                    dup2(stdoutBackup, STDOUT);
+                }
                 return -1;
+            }
             if (dirCount > 1)
                 printf("%s:\n", DIR_PATH);
 
@@ -304,7 +329,14 @@ int ls(char *COMMAND)
                     sprintf(FILE_PATH, "%s/%s", DIR_PATH, lsDirRecon->d_name);
                     struct stat fileStat;
                     if (lstat(FILE_PATH, &fileStat))
+                    {
+                        if (wRedir)
+                        {
+                            fclose(op);
+                            dup2(stdoutBackup, STDOUT);
+                        }
                         return -1;
+                    }
                     char hiddenFlag = (lsDirRecon->d_name[0] == '.');
                     if ((aFlag && hiddenFlag) || (!hiddenFlag))
                     {
@@ -325,7 +357,14 @@ int ls(char *COMMAND)
             // Actual printing logic
             lsDirStream = opendir(DIR_PATH);
             if (lsDirStream == NULL)
+            {
+                if (wRedir)
+                {
+                    fclose(op);
+                    dup2(stdoutBackup, STDOUT);
+                }
                 return -1;
+            }
             if (lFlag)
                 printf("total %d\n", total);
 
@@ -348,7 +387,14 @@ int ls(char *COMMAND)
                     sprintf(FILE_PATH, "%s/%s", DIR_PATH, lsDirPrint->d_name);
                     struct stat fileStat;
                     if (lstat(FILE_PATH, &fileStat))
+                    {
+                        if (wRedir)
+                        {
+                            fclose(op);
+                            dup2(stdoutBackup, STDOUT);
+                        }
                         return -1;
+                    }
                     // If -a is given, print details of all the files
                     char hiddenFlag = (lsDirPrint->d_name[0] == '.');
                     if ((hiddenFlag && aFlag) || (!hiddenFlag))
@@ -367,9 +413,13 @@ int ls(char *COMMAND)
         }
     }
     // If multiple directories, erase the trailing newline
-    if (dirCount > 1)
+    if (dirCount > 1 && !wRedir)
         printf("\x1B[A\b");
-
+    if (wRedir)
+    {
+        fclose(op);
+        dup2(stdoutBackup, STDOUT);
+    }
     return 0;
 }
 
@@ -508,15 +558,12 @@ void nw_newborn(int sleepDur)
 }
 
 // Method to parse the nightswatch command and perform desired operation
-void nightswatch(char *COMMAND)
+void nightswatch(char *args[])
 {
     // Get number of arguments
     int argCount = 0;
-    int len = strlen(COMMAND);
-    for (int i = 0; i < len; i++)
-        if (COMMAND[i] == ' ')
-            argCount++;
-    argCount++;
+    while (args[argCount] != NULL)
+        argCount++;
 
     // If not in proper format, prompt and return
     if (argCount != 2 && argCount != 4)
@@ -524,12 +571,6 @@ void nightswatch(char *COMMAND)
         fprintf(stderr, "Usage: nightswatch [option] <command>\n");
         return;
     }
-
-    // A pointer for each argument (min 2, max 4),
-    char *args[4] = {NULL};
-    args[0] = strtok(COMMAND, " ");
-    for (int i = 1; i < 4; i++)
-        args[i] = strtok(NULL, " ");
 
     // Default sleep duration 2 seconds
     int sleepDur = 2;
@@ -565,13 +606,25 @@ void nightswatch(char *COMMAND)
 }
 
 // Method to implement pinfo
-int pinfo(char *COMMAND)
+int pinfo(char *args[], char wRedir, char *outfile)
 {
-    // Get required process id
-    pid_t pid = getpid();
-    if (strlen(COMMAND) > 5)
-        pid = (pid_t)atoi(COMMAND + 6);
+    int stdoutBackup = dup(STDOUT);
+    FILE *op;
+    if (wRedir)
+    {
+        op = fopen(outfile, wRedir == 1 ? "w+" : "a+");
+        if (op == NULL)
+            return -1;
+        int opFd = fileno(op);
+        dup2(opFd, STDOUT);
+    }
 
+    // Get required process id
+    pid_t pid = 0;
+    if (args[1] != NULL)
+        pid = (pid_t)atoi(args[1]);
+    if (pid == 0)
+        pid = getpid();
     // Open respective process file and read its contents
     char filePath[20];
     sprintf(filePath, "/proc/%d/stat", (int)pid);
@@ -608,15 +661,35 @@ int pinfo(char *COMMAND)
     if (readStat != -1)
         shortenPath(INVOC_LOC, execPath);
     printf("Executable Path -- %s\n", readStat == -1 ? "Doesn't exist" : execPath);
+    if (wRedir)
+    {
+        fclose(op);
+        dup2(stdoutBackup, STDOUT);
+    }
     return 0;
 }
 
 // Method to implement pwd
-int pwd()
+int pwd(char wRedir, char *outfile)
 {
+    int stdoutBackup = dup(STDOUT);
+    FILE *op;
+    if (wRedir)
+    {
+        op = fopen(outfile, wRedir == 1 ? "w+" : "a+");
+        if (op == NULL)
+            return -1;
+        int opFd = fileno(op);
+        dup2(opFd, STDOUT);
+    }
     char PWD[PATH_MAX + 1];
     if (getcwd(PWD, PATH_MAX) == NULL)
         return -1;
     printf("%s\n", PWD);
+    if (wRedir)
+    {
+        fclose(op);
+        dup2(stdoutBackup, STDOUT);
+    }
     return 0;
 }
