@@ -6,6 +6,8 @@ int cash_setenv(char *args[]);
 
 int cash_unsetenv(char *args[]);
 
+int cash_env();
+
 int cd(char *args[]);
 
 int bExec(char *args[]);
@@ -13,6 +15,8 @@ int bExec(char *args[]);
 void echo(char *args[]);
 
 int fExec(char *args[]);
+
+void jobs();
 
 void printPermissions(mode_t bits);
 

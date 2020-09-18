@@ -52,15 +52,6 @@ void cleanCommand(char *COMMAND)
         handlePipes(COMMAND_CLEANED);
 }
 
-// Debugging method. Lists all active children processes.
-void cproc()
-{
-    printf("%d child process%s\n", childCount, childCount != 1 ? "es" : "");
-    for (int i = 0; i < MAX_CHLD_COUNT; i++)
-        if (children[i].pid != -1)
-            printf("%d -> %s\n", (int)children[i].pid, children[i].pName);
-}
-
 // Utility function to get the number of digits in a number
 int digitCount(long long x)
 {
@@ -129,6 +120,7 @@ void execCommand(char *COMMAND)
         }
     }
 
+    // Redirecting STDIN and STDOUT as required
     int stdinBackup = dup(STDIN);
     int stdoutBackup = dup(STDOUT);
     FILE *ip, *op;
@@ -168,7 +160,7 @@ void execCommand(char *COMMAND)
         }
     }
 
-    // Going through the commands
+    // Going through the command and run the required function
     if (!strcmp(args[0], "exit"))
         exit(0);
     else if (!strcmp(args[0], "clear"))
@@ -229,12 +221,11 @@ void execCommand(char *COMMAND)
             perrorHandle(0);
     }
     // Debugging function
-    else if (!strcmp(args[0], "cproc"))
-        cproc();
+    else if (!strcmp(args[0], "jobs"))
+        jobs();
     // Debugging function
     else if (!strcmp(args[0], "env"))
-        for (char **env = __environ; *env; env++)
-            printf("%s\n", *env);
+        cash_env();
     else
     {
         if (COMMAND[strlen(COMMAND) - 1] == '&')
@@ -257,6 +248,8 @@ void execCommand(char *COMMAND)
                 perrorHandle(0);
         }
     }
+
+    // Reset STDIN and STDOUT if required
     if (readRedir)
     {
         fclose(ip);
@@ -307,17 +300,24 @@ int generatePS(char init, char *PS, char *INVOC_LOC)
     return 0;
 }
 
+// Method to handle piping logic
 void handlePipes(char *inputString)
 {
+    // Count the number of pipe separated commands
     int comCount = 1;
     int len = strlen(inputString);
     for (int i = 0; i < len; i++)
         if (inputString[i] == '|')
             comCount++;
+
+    // If there is just one, no pipes, just run
     if (comCount == 1)
         execCommand(inputString);
+
+    // Otherwise
     else
     {
+        // Assign one pointer to each command
         char *commands[comCount];
         for (int i = 0; i <= comCount; i++)
             commands[i] = NULL;
@@ -329,6 +329,8 @@ void handlePipes(char *inputString)
             comCount++;
             commands[comCount] = strtok(NULL, "|");
         }
+
+        // Remove leading and trailing spaces from each command
         for (int i = 0; i < comCount; i++)
         {
             if (commands[i][0] == ' ')
@@ -336,8 +338,12 @@ void handlePipes(char *inputString)
             if (commands[i][strlen(commands[i]) - 1] == ' ')
                 commands[i][strlen(commands[i]) - 1] = '\0';
         }
+
+        // Count number of pipes and create required file descriptor pairs
         int pipeCount = comCount - 1;
         int fds[2 * pipeCount];
+
+        // Initialize the pipe file descriptors
         for (int i = 0; i < 2 * pipeCount; i += 2)
             if (pipe(fds + i))
             {
@@ -345,28 +351,35 @@ void handlePipes(char *inputString)
                 return;
             }
         int pid;
-        int counter = 0;
 
+        // For each command
         for (int i = 0; i < comCount; i++)
         {
+            // Make a new child process for the shell
             pid = fork();
+            // In the child process
             if (pid == 0)
             {
                 // If not the last command, link the block's write fd to stdout
                 if (i < pipeCount)
                     dup2(fds[2 * i + 1], STDOUT);
-                // If not the first command, link the previous block's read fd to stdin
+                // If not the first command, link the previous block's read fd to stdin to read what the previous command wrote
                 if (i > 0)
                     dup2(fds[2 * i - 2], STDIN);
+                // Close the pipes in the current child (just clean up)
                 for (int j = 0; j < 2 * pipeCount; j++)
                     close(fds[j]);
+                // Execute the command
                 char *command = commands[i];
                 execCommand(command);
+                // Exit the process on completion
                 exit(0);
             }
         }
+        // Close all the pipes in the parent
         for (int i = 0; i < 2 * pipeCount; i++)
             close(fds[i]);
+        // Reap all the dead child processes
         for (int i = 0; i < comCount; i++)
             wait(NULL);
     }
@@ -482,6 +495,29 @@ void psError(int psState)
         perrorHandle(1);
 }
 
+// Method to remove a child from the pool, given its pid
+void removeChild(pid_t pid)
+{
+    char removed = 0;
+    // If a child process that is in the middle of the array is killed, the processes
+    // ahead of it are moved back one space to keep them contigeous
+    for (int i = 0; i < childCount; i++)
+    {
+        if (children[i].pid == pid && !removed)
+            removed = 1;
+        if (removed)
+        {
+            if (i == childCount - 1)
+                children[i].pid = -1;
+            else
+            {
+                children[i].pid = children[i + 1].pid;
+                strcpy(children[i].pName, children[i + 1].pName);
+            }
+        }
+    }
+}
+
 // Method to shorten PWD if it is a sub-directory of INVOC_LOC
 void shortenPath(char *prefix, char *path)
 {
@@ -517,7 +553,7 @@ void sigchldHandler(int sigNum)
                 // Print the termination message and set the flag
                 sprintf(OSTRING, "\n%s with pid %d exited %s\n", children[i].pName, (int)pid, status != 0 ? "normally" : "abnormally");
                 write(STDERR, OSTRING, strlen(OSTRING));
-                children[i].pid = -1;
+                removeChild(children[i].pid);
                 childCount--;
                 break;
             }

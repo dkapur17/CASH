@@ -5,8 +5,6 @@ void clear();
 
 void cleanCommand(char *COMMAND);
 
-void cproc();
-
 int digitCount(long long x);
 
 void execCommand(char *COMMAND);
@@ -28,6 +26,8 @@ void parseInputString(char *COMMAND_STRING);
 void perrorHandle(int quit);
 
 void psError(int psState);
+
+void removeChild(pid_t pid);
 
 void shortenPath(char *prefix, char *path);
 

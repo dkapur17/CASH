@@ -9,36 +9,54 @@
 extern char OSTRING[];
 extern char INVOC_LOC[];
 extern char SHELL_NAME[];
+extern struct pData children[];
 extern int childCount;
 
 char DIR_PATH[PATH_MAX + 1 - MAX_FILE_NAME];
 char FILE_PATH[PATH_MAX + 1];
 
+// Method to implement setenv
 int cash_setenv(char *args[])
 {
+    // Count number of arguments
     int argCount = 0;
     while (args[argCount] != NULL)
         argCount++;
 
+    // If ill formatted command, return usage message
     if (argCount == 1 || argCount > 3)
     {
         fprintf(stderr, "Usage: setenv var [value]\n");
         return 0;
     }
+
+    // Set the variable and return
     return setenv(args[1], args[2] != NULL ? args[2] : "", 1);
 }
 
+// Method to implement unsetenv
 int cash_unsetenv(char *args[])
 {
+    // Count number of arguments
     int argCount = 0;
     while (args[argCount] != NULL)
         argCount++;
+
+    // If ill formatted command, return usage message
     if (argCount != 2)
     {
         fprintf(stderr, "Usage: unsetenv var\n");
         return 0;
     }
+
+    // Unset the variable and return
     return unsetenv(args[1]);
+}
+
+int cash_env()
+{
+    for (char **env = __environ; *env; env++)
+        printf("%s\n", *env);
 }
 
 // Method to implement background process execution
@@ -145,6 +163,13 @@ int fExec(char *args[])
     else
         wait(NULL);
     return 0;
+}
+
+void jobs()
+{
+    for (int i = 0; i < MAX_CHLD_COUNT; i++)
+        if (children[i].pid != -1)
+            printf("[%d] Running %s [%d]\n", i + 1, children[i].pName, (int)children[i].pid);
 }
 
 // Utility Function for ls. Used to print the permissions string for the -l flag
