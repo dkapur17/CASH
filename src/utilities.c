@@ -21,20 +21,9 @@ char OSTRING[512];
 struct pData children[MAX_CHLD_COUNT];
 
 // Method to clear the terminal
-int clear(char wRedir, char *outfile)
+void clear()
 {
-    int writeFd = STDOUT;
-    if (wRedir)
-    {
-        writeFd = open(outfile, wRedir == 1 ? O_WRONLY : O_APPEND);
-        if (writeFd < 0)
-            return -1;
-    }
-    write(writeFd, "\e[1;1H\e[2J", strlen("\e[1;1H\e[2J"));
-    if (wRedir)
-        close(writeFd);
-
-    return 0;
+    printf("\e[1;1H\e[2J");
 }
 
 // Clean out extra spaces in each command. Then execute if the cleaned command is a non-zero length string
@@ -140,24 +129,55 @@ void execCommand(char *COMMAND)
         }
     }
 
+    int stdinBackup = dup(STDIN);
+    int stdoutBackup = dup(STDOUT);
+    FILE *ip, *op;
+    if (readRedir)
+    {
+
+        ip = fopen(args[infileLoc], "r");
+        if (ip == NULL)
+        {
+            fprintf(stderr, "Unable to redirect input\n");
+            perrorHandle(0);
+            return;
+        }
+        int ipFd = fileno(ip);
+        if (dup2(ipFd, STDIN) == -1)
+        {
+            fprintf(stderr, "Unable to redirect input\n");
+            perrorHandle(0);
+            return;
+        }
+    }
+    if (writeRedir)
+    {
+        op = fopen(args[outfileLoc], writeRedir == 1 ? "w+" : "a+");
+        if (op == NULL)
+        {
+            fprintf(stderr, "Unable to redirect output\n");
+            perrorHandle(0);
+            return;
+        }
+        int opFd = fileno(op);
+        if (dup2(opFd, STDOUT) == -1)
+        {
+            fprintf(stderr, "Unable to redirect output\n");
+            perrorHandle(0);
+            return;
+        }
+    }
+
     // Going through the commands
     if (!strcmp(args[0], "exit"))
-    {
         exit(0);
-    }
     else if (!strcmp(args[0], "clear"))
-    {
-        if (clear(writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
-            perrorHandle(0);
-    }
+        clear();
     else if (!strcmp(args[0], "pwd"))
-    {
-        if (pwd(writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
-            perrorHandle(0);
-    }
+        pwd();
     else if (!strcmp(args[0], "cd"))
     {
-        if (cd(COMMAND))
+        if (cd(args))
             perrorHandle(0);
     }
     else if (!strcmp(args[0], "echo"))
@@ -166,8 +186,7 @@ void execCommand(char *COMMAND)
             args[outfileLoc - 1] = NULL;
         if (readRedir != 0)
             args[infileLoc - 1] = NULL;
-        if (echo(args, writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
-            perrorHandle(0);
+        echo(args);
     }
     else if (!strcmp(args[0], "ls"))
     {
@@ -175,18 +194,24 @@ void execCommand(char *COMMAND)
             args[outfileLoc - 1] = NULL;
         if (readRedir != 0)
             args[infileLoc - 1] = NULL;
-        if (ls(args, writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
+        if (ls(args, writeRedir))
             perrorHandle(0);
     }
     else if (!strcmp(args[0], "pinfo"))
     {
-        if (pinfo(args, writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
+        if (pinfo(args))
             perrorHandle(0);
     }
     else if (!strcmp(args[0], "cproc"))
         cproc();
     else if (!strcmp(args[0], "nightswatch"))
+    {
+        if (writeRedir != 0)
+            args[outfileLoc - 1] = NULL;
+        if (readRedir != 0)
+            args[infileLoc - 1] = NULL;
         nightswatch(args);
+    }
     else
     {
         if (COMMAND[strlen(COMMAND) - 1] == '&')
@@ -196,7 +221,7 @@ void execCommand(char *COMMAND)
                 args[outfileLoc - 1] = NULL;
             if (readRedir != 0)
                 args[infileLoc - 1] = NULL;
-            if (bExec(args, readRedir, writeRedir, infileLoc != -1 ? args[infileLoc] : NULL, outfileLoc != -1 ? args[outfileLoc] : NULL))
+            if (bExec(args))
                 perrorHandle(0);
         }
         else
@@ -205,9 +230,19 @@ void execCommand(char *COMMAND)
                 args[outfileLoc - 1] = NULL;
             if (readRedir != 0)
                 args[infileLoc - 1] = NULL;
-            if (fExec(args, readRedir, writeRedir, infileLoc != -1 ? args[infileLoc] : NULL, outfileLoc != -1 ? args[outfileLoc] : NULL))
+            if (fExec(args))
                 perrorHandle(0);
         }
+    }
+    if (readRedir)
+    {
+        fclose(ip);
+        dup2(stdinBackup, STDIN);
+    }
+    if (writeRedir)
+    {
+        fclose(op);
+        dup2(stdoutBackup, STDOUT);
     }
 }
 

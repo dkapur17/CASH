@@ -2,13 +2,13 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 
-int cd(char *COMMAND);
+int cd(char **args);
 
-int bExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile);
+int bExec(char *args[]);
 
-int echo(char *args[], char wRedir, char *outfile);
+void echo(char *args[]);
 
-int fExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile);
+int fExec(char *args[]);
 
 void printPermissions(mode_t bits);
 
@@ -16,7 +16,7 @@ void ls_printPermissions(mode_t bits);
 
 void ls_printFileDetails(struct dirent *lsDir, struct stat fileStat, int *colLen);
 
-int ls(char *args[], char wRedir, char *outfile);
+int ls(char *args[], char wRedir);
 
 void nw_interrupt(int sleepDur);
 
@@ -24,8 +24,8 @@ void nw_newborn(int sleepDur);
 
 void nightswatch(char *args[]);
 
-int pinfo(char *args[], char wRedir, char *outfile);
+int pinfo(char *args[]);
 
-int pwd(char wRedir, char *outfile);
+void pwd();
 
 #endif

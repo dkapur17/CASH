@@ -15,7 +15,7 @@ char DIR_PATH[PATH_MAX + 1 - MAX_FILE_NAME];
 char FILE_PATH[PATH_MAX + 1];
 
 // Method to implement background process execution
-int bExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile)
+int bExec(char *args[])
 {
     // If the location of the executable is relative to ~, make the path absolute
     if (args[0][0] == '~')
@@ -36,32 +36,6 @@ int bExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile)
         // If there is space in the child pool
         if (childCount < MAX_CHLD_COUNT)
         {
-            int stdoutBackup = dup(STDOUT);
-            int stdinBackup = dup(STDIN);
-            FILE *op;
-            FILE *ip;
-            if (wRedir)
-            {
-                op = fopen(outfile, wRedir == 1 ? "w+" : "a");
-                if (op == NULL)
-                {
-                    fprintf(stderr, "Unable to redirect output. Aborting.\n");
-                    exit(1);
-                }
-                int opFd = fileno(op);
-                dup2(opFd, STDOUT);
-            }
-            if (rRedir)
-            {
-                ip = fopen(infile, "r");
-                if (ip == NULL)
-                {
-                    fprintf(stderr, "Unable to redirect input. Aborting\n");
-                    exit(1);
-                }
-                int ipFd = fileno(ip);
-                dup2(ipFd, STDIN);
-            }
             // Change the process group of the child to send it to the background
             setpgid(0, 0);
             // If the command given is invalid, print an error and exit with code 16
@@ -86,11 +60,11 @@ int bExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile)
 }
 
 // Method to implement cd
-int cd(char *COMMAND)
+int cd(char **args)
 {
-    char *LOC = COMMAND + 3;
+    char *LOC = args[1];
     char code;
-    if (!strlen(LOC) || !strcmp(LOC, "~"))
+    if (LOC == NULL || !strcmp(LOC, ">") || !strcmp(LOC, ">>") || !strcmp(LOC, "<") || !strcmp(LOC, "~"))
         code = chdir(INVOC_LOC);
     else if (LOC[0] == '~')
     {
@@ -105,18 +79,8 @@ int cd(char *COMMAND)
 }
 
 // Method to implement echo
-int echo(char *args[], char wRedir, char *outfile)
+void echo(char *args[])
 {
-    int stdoutBackup = dup(STDOUT);
-    FILE *op;
-    if (wRedir)
-    {
-        op = fopen(outfile, wRedir == 1 ? "w+" : "a+");
-        if (op == NULL)
-            return -1;
-        int opFd = fileno(op);
-        dup2(opFd, STDOUT);
-    }
     for (int i = 1; args[i] != NULL; i++)
     {
         if (i != 1)
@@ -124,16 +88,11 @@ int echo(char *args[], char wRedir, char *outfile)
         printf("%s", args[i]);
     }
     printf("\n");
-    if (wRedir)
-    {
-        fclose(op);
-        dup2(stdoutBackup, STDOUT);
-    }
-    return 0;
+    return;
 }
 
 // Method to implement foreground process execution
-int fExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile)
+int fExec(char *args[])
 { // If path relative to INVOC_LOC is give, handle it
     if (args[0][0] == '~')
     {
@@ -149,32 +108,6 @@ int fExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile)
     // In the child fork, execute the command
     if (pid == 0)
     {
-        int stdoutBackup = dup(STDOUT);
-        int stdinBackup = dup(STDIN);
-        FILE *op;
-        FILE *ip;
-        if (wRedir)
-        {
-            op = fopen(outfile, wRedir == 1 ? "w+" : "a");
-            if (op == NULL)
-            {
-                fprintf(stderr, "Unable to redirect output. Aborting.\n");
-                exit(1);
-            }
-            int opFd = fileno(op);
-            dup2(opFd, STDOUT);
-        }
-        if (rRedir)
-        {
-            ip = fopen(infile, "r");
-            if (ip == NULL)
-            {
-                fprintf(stderr, "Unable to redirect input. Aborting\n");
-                exit(1);
-            }
-            int ipFd = fileno(ip);
-            dup2(ipFd, STDIN);
-        }
         if (execvp(args[0], args))
         {
             fprintf(stderr, "%s Error: Command not Found: %s\n", SHELL_NAME, args[0]);
@@ -272,18 +205,8 @@ void ls_printFileDetails(struct dirent *lsDir, struct stat fileStat, int *colLen
 }
 
 // Method to implement ls
-int ls(char *args[], char wRedir, char *outfile)
+int ls(char *args[], char wRedir)
 {
-    int stdoutBackup = dup(STDOUT);
-    FILE *op;
-    if (wRedir)
-    {
-        op = fopen(outfile, wRedir == 1 ? "w+" : "a+");
-        if (op == NULL)
-            return -1;
-        int opFd = fileno(op);
-        dup2(opFd, STDOUT);
-    }
     // Counting the number of arguments in the strings
     int argCount = 0;
     while (args[argCount] != NULL)
@@ -334,14 +257,7 @@ int ls(char *args[], char wRedir, char *outfile)
 
             lsDirStream = opendir(DIR_PATH);
             if (lsDirStream == NULL)
-            {
-                if (wRedir)
-                {
-                    fclose(op);
-                    dup2(stdoutBackup, STDOUT);
-                }
                 return -1;
-            }
             if (dirCount > 1)
                 printf("%s:\n", DIR_PATH);
 
@@ -355,14 +271,7 @@ int ls(char *args[], char wRedir, char *outfile)
                     sprintf(FILE_PATH, "%s/%s", DIR_PATH, lsDirRecon->d_name);
                     struct stat fileStat;
                     if (lstat(FILE_PATH, &fileStat))
-                    {
-                        if (wRedir)
-                        {
-                            fclose(op);
-                            dup2(stdoutBackup, STDOUT);
-                        }
                         return -1;
-                    }
                     char hiddenFlag = (lsDirRecon->d_name[0] == '.');
                     if ((aFlag && hiddenFlag) || (!hiddenFlag))
                     {
@@ -383,14 +292,7 @@ int ls(char *args[], char wRedir, char *outfile)
             // Actual printing logic
             lsDirStream = opendir(DIR_PATH);
             if (lsDirStream == NULL)
-            {
-                if (wRedir)
-                {
-                    fclose(op);
-                    dup2(stdoutBackup, STDOUT);
-                }
                 return -1;
-            }
             if (lFlag)
                 printf("total %d\n", total);
 
@@ -413,14 +315,7 @@ int ls(char *args[], char wRedir, char *outfile)
                     sprintf(FILE_PATH, "%s/%s", DIR_PATH, lsDirPrint->d_name);
                     struct stat fileStat;
                     if (lstat(FILE_PATH, &fileStat))
-                    {
-                        if (wRedir)
-                        {
-                            fclose(op);
-                            dup2(stdoutBackup, STDOUT);
-                        }
                         return -1;
-                    }
                     // If -a is given, print details of all the files
                     char hiddenFlag = (lsDirPrint->d_name[0] == '.');
                     if ((hiddenFlag && aFlag) || (!hiddenFlag))
@@ -441,11 +336,6 @@ int ls(char *args[], char wRedir, char *outfile)
     // If multiple directories, erase the trailing newline
     if (dirCount > 1 && !wRedir)
         printf("\x1B[A\b");
-    if (wRedir)
-    {
-        fclose(op);
-        dup2(stdoutBackup, STDOUT);
-    }
     return 0;
 }
 
@@ -632,19 +522,8 @@ void nightswatch(char *args[])
 }
 
 // Method to implement pinfo
-int pinfo(char *args[], char wRedir, char *outfile)
+int pinfo(char *args[])
 {
-    int stdoutBackup = dup(STDOUT);
-    FILE *op;
-    if (wRedir)
-    {
-        op = fopen(outfile, wRedir == 1 ? "w+" : "a+");
-        if (op == NULL)
-            return -1;
-        int opFd = fileno(op);
-        dup2(opFd, STDOUT);
-    }
-
     // Get required process id
     pid_t pid = 0;
     if (args[1] != NULL)
@@ -687,35 +566,18 @@ int pinfo(char *args[], char wRedir, char *outfile)
     if (readStat != -1)
         shortenPath(INVOC_LOC, execPath);
     printf("Executable Path -- %s\n", readStat == -1 ? "Doesn't exist" : execPath);
-    if (wRedir)
-    {
-        fclose(op);
-        dup2(stdoutBackup, STDOUT);
-    }
     return 0;
 }
 
 // Method to implement pwd
-int pwd(char wRedir, char *outfile)
+void pwd()
 {
-    int stdoutBackup = dup(STDOUT);
-    FILE *op;
-    if (wRedir)
-    {
-        op = fopen(outfile, wRedir == 1 ? "w+" : "a+");
-        if (op == NULL)
-            return -1;
-        int opFd = fileno(op);
-        dup2(opFd, STDOUT);
-    }
     char PWD[PATH_MAX + 1];
     if (getcwd(PWD, PATH_MAX) == NULL)
-        return -1;
-    printf("%s\n", PWD);
-    if (wRedir)
     {
-        fclose(op);
-        dup2(stdoutBackup, STDOUT);
+        fprintf(stderr, "Unable to get current directory.\n");
+        perrorHandle(0);
+        return;
     }
-    return 0;
+    printf("%s\n", PWD);
 }

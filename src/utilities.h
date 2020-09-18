@@ -1,7 +1,7 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
-int clear(char wRedir, char *outfile);
+void clear();
 
 void cleanCommand(char *COMMAND);
 
