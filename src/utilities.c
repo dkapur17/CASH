@@ -38,7 +38,7 @@ int clear(char wRedir, char *outfile)
 }
 
 // Clean out extra spaces in each command. Then execute if the cleaned command is a non-zero length string
-void cleanCommand(char *COMMAND, char *exitBool)
+void cleanCommand(char *COMMAND)
 {
     // Temporary pointer to point to each space seperated word
     char *TOKEN_POINTER;
@@ -60,7 +60,7 @@ void cleanCommand(char *COMMAND, char *exitBool)
     COMMAND_CLEANED[strlen(COMMAND_CLEANED) - 1] = '\0';
     // If the command has some length, look to execute it
     if (strlen(COMMAND_CLEANED))
-        handlePipes(COMMAND_CLEANED, exitBool);
+        handlePipes(COMMAND_CLEANED);
 }
 
 // Debugging method. Lists all active children processes.
@@ -88,7 +88,7 @@ int digitCount(long long x)
 }
 
 // Case-wise execution of cleaned commands
-void execCommand(char *COMMAND, char *exitBool)
+void execCommand(char *COMMAND)
 {
     // Checking for IO Redirection
     int len = strlen(COMMAND);
@@ -142,7 +142,9 @@ void execCommand(char *COMMAND, char *exitBool)
 
     // Going through the commands
     if (!strcmp(args[0], "exit"))
-        *exitBool = 1;
+    {
+        exit(0);
+    }
     else if (!strcmp(args[0], "clear"))
     {
         if (clear(writeRedir, outfileLoc != -1 ? args[outfileLoc] : NULL))
@@ -247,7 +249,7 @@ int generatePS(char init, char *PS, char *INVOC_LOC)
     return 0;
 }
 
-void handlePipes(char *inputString, char *exitBool)
+void handlePipes(char *inputString)
 {
     int comCount = 1;
     int len = strlen(inputString);
@@ -255,10 +257,10 @@ void handlePipes(char *inputString, char *exitBool)
         if (inputString[i] == '|')
             comCount++;
     if (comCount == 1)
-        execCommand(inputString, exitBool);
+        execCommand(inputString);
     else
     {
-        char *commands[comCount] = {NULL};
+        char *commands[comCount];
         for (int i = 0; i <= comCount; i++)
             commands[i] = NULL;
 
@@ -301,7 +303,7 @@ void handlePipes(char *inputString, char *exitBool)
                 for (int j = 0; j < 2 * pipeCount; j++)
                     close(fds[j]);
                 char *command = commands[i];
-                execCommand(command, exitBool);
+                execCommand(command);
                 exit(0);
             }
         }
@@ -364,7 +366,7 @@ int max(int a, int b)
 }
 
 // Utility function to parse the inputted command string, extract individual commands and call the required functions
-void parseInputString(char *COMMAND_STRING, char *exitBool)
+void parseInputString(char *COMMAND_STRING)
 {
     int len = strlen(COMMAND_STRING);
     int commandCount = 0;
@@ -393,7 +395,7 @@ void parseInputString(char *COMMAND_STRING, char *exitBool)
 
     // For every ; seperated command, clean and execute it
     for (int i = 0; i < commandCount; i++)
-        cleanCommand(COMMANDS[i], exitBool);
+        cleanCommand(COMMANDS[i]);
 }
 
 // Method to print the perror messages and exit if necessary

@@ -3,17 +3,17 @@
 
 int clear(char wRedir, char *outfile);
 
-void cleanCommand(char *COMMAND, char *exitBool);
+void cleanCommand(char *COMMAND);
 
 void cproc();
 
 int digitCount(long long x);
 
-void execCommand(char *COMMAND, char *exitBool);
+void execCommand(char *COMMAND);
 
 int generatePS(char init, char *PS, char *INVOC_LOC);
 
-void handlePipes(char *inputString, char *exitBool);
+void handlePipes(char *inputString);
 
 void initChildren();
 
@@ -23,7 +23,7 @@ void installHandler();
 
 int max(int a, int b);
 
-void parseInputString(char *COMMAND_STRING, char *exitBool);
+void parseInputString(char *COMMAND_STRING);
 
 void perrorHandle(int quit);
 
