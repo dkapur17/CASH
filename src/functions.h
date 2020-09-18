@@ -4,11 +4,11 @@
 
 int cd(char *COMMAND);
 
-int bExec(char *COMMAND);
+int bExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile);
 
 int echo(char *args[], char wRedir, char *outfile);
 
-int fExec(char *COMMAND);
+int fExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile);
 
 void printPermissions(mode_t bits);
 

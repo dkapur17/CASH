@@ -189,12 +189,21 @@ void execCommand(char *COMMAND, char *exitBool)
     {
         if (COMMAND[strlen(COMMAND) - 1] == '&')
         {
-            if (bExec(COMMAND))
+            COMMAND[strlen(COMMAND) - 1] = '\0';
+            if (writeRedir != 0)
+                args[outfileLoc - 1] = NULL;
+            if (readRedir != 0)
+                args[infileLoc - 1] = NULL;
+            if (bExec(args, readRedir, writeRedir, infileLoc != -1 ? args[infileLoc] : NULL, outfileLoc != -1 ? args[outfileLoc] : NULL))
                 perrorHandle(0);
         }
         else
         {
-            if (fExec(COMMAND))
+            if (writeRedir != 0)
+                args[outfileLoc - 1] = NULL;
+            if (readRedir != 0)
+                args[infileLoc - 1] = NULL;
+            if (fExec(args, readRedir, writeRedir, infileLoc != -1 ? args[infileLoc] : NULL, outfileLoc != -1 ? args[outfileLoc] : NULL))
                 perrorHandle(0);
         }
     }

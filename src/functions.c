@@ -15,20 +15,8 @@ char DIR_PATH[PATH_MAX + 1 - MAX_FILE_NAME];
 char FILE_PATH[PATH_MAX + 1];
 
 // Method to implement background process execution
-int bExec(char *COMMAND)
+int bExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile)
 {
-    // Get the list of arguments provided
-    int argCount = 0;
-    int len = strlen(COMMAND);
-    for (int i = 0; i < len; i++)
-        if (COMMAND[i] == ' ')
-            argCount++;
-
-    char *args[MAX_ARGS] = {NULL};
-    args[0] = strtok(COMMAND, " ");
-    for (int i = 1; i < argCount; i++)
-        args[i] = strtok(NULL, " ");
-
     // If the location of the executable is relative to ~, make the path absolute
     if (args[0][0] == '~')
     {
@@ -48,6 +36,32 @@ int bExec(char *COMMAND)
         // If there is space in the child pool
         if (childCount < MAX_CHLD_COUNT)
         {
+            int stdoutBackup = dup(STDOUT);
+            int stdinBackup = dup(STDIN);
+            FILE *op;
+            FILE *ip;
+            if (wRedir)
+            {
+                op = fopen(outfile, wRedir == 1 ? "w+" : "a");
+                if (op == NULL)
+                {
+                    fprintf(stderr, "Unable to redirect output. Aborting.\n");
+                    exit(1);
+                }
+                int opFd = fileno(op);
+                dup2(opFd, STDOUT);
+            }
+            if (rRedir)
+            {
+                ip = fopen(infile, "r");
+                if (ip == NULL)
+                {
+                    fprintf(stderr, "Unable to redirect input. Aborting\n");
+                    exit(1);
+                }
+                int ipFd = fileno(ip);
+                dup2(ipFd, STDIN);
+            }
             // Change the process group of the child to send it to the background
             setpgid(0, 0);
             // If the command given is invalid, print an error and exit with code 16
@@ -119,22 +133,8 @@ int echo(char *args[], char wRedir, char *outfile)
 }
 
 // Method to implement foreground process execution
-int fExec(char *COMMAND)
-{
-    // Split the agruments
-    int argCount = 0;
-    int len = strlen(COMMAND);
-    for (int i = 0; i < len; i++)
-        if (COMMAND[i] == ' ')
-            argCount++;
-    argCount++;
-
-    char *args[MAX_ARGS] = {NULL};
-    args[0] = strtok(COMMAND, " ");
-    for (int i = 1; i < argCount; i++)
-        args[i] = strtok(NULL, " ");
-
-    // If path relative to INVOC_LOC is give, handle it
+int fExec(char *args[], char rRedir, char wRedir, char *infile, char *outfile)
+{ // If path relative to INVOC_LOC is give, handle it
     if (args[0][0] == '~')
     {
         char execPath[PATH_MAX + 1];
@@ -149,10 +149,36 @@ int fExec(char *COMMAND)
     // In the child fork, execute the command
     if (pid == 0)
     {
+        int stdoutBackup = dup(STDOUT);
+        int stdinBackup = dup(STDIN);
+        FILE *op;
+        FILE *ip;
+        if (wRedir)
+        {
+            op = fopen(outfile, wRedir == 1 ? "w+" : "a");
+            if (op == NULL)
+            {
+                fprintf(stderr, "Unable to redirect output. Aborting.\n");
+                exit(1);
+            }
+            int opFd = fileno(op);
+            dup2(opFd, STDOUT);
+        }
+        if (rRedir)
+        {
+            ip = fopen(infile, "r");
+            if (ip == NULL)
+            {
+                fprintf(stderr, "Unable to redirect input. Aborting\n");
+                exit(1);
+            }
+            int ipFd = fileno(ip);
+            dup2(ipFd, STDIN);
+        }
         if (execvp(args[0], args))
         {
             fprintf(stderr, "%s Error: Command not Found: %s\n", SHELL_NAME, args[0]);
-            exit(0);
+            exit(1);
         }
     }
     // In the parent process, await completion of child
