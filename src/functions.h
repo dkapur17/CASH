@@ -2,7 +2,11 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 
-int cd(char **args);
+int cash_setenv(char *args[]);
+
+int cash_unsetenv(char *args[]);
+
+int cd(char *args[]);
 
 int bExec(char *args[]);
 

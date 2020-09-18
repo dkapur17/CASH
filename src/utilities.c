@@ -202,8 +202,6 @@ void execCommand(char *COMMAND)
         if (pinfo(args))
             perrorHandle(0);
     }
-    else if (!strcmp(args[0], "cproc"))
-        cproc();
     else if (!strcmp(args[0], "nightswatch"))
     {
         if (writeRedir != 0)
@@ -212,6 +210,31 @@ void execCommand(char *COMMAND)
             args[infileLoc - 1] = NULL;
         nightswatch(args);
     }
+    else if (!strcmp(args[0], "setenv"))
+    {
+        if (writeRedir != 0)
+            args[outfileLoc - 1] = NULL;
+        if (readRedir != 0)
+            args[infileLoc - 1] = NULL;
+        if (cash_setenv(args))
+            perrorHandle(0);
+    }
+    else if (!strcmp(args[0], "unsetenv"))
+    {
+        if (writeRedir != 0)
+            args[outfileLoc - 1] = NULL;
+        if (readRedir != 0)
+            args[infileLoc - 1] = NULL;
+        if (cash_unsetenv(args))
+            perrorHandle(0);
+    }
+    // Debugging function
+    else if (!strcmp(args[0], "cproc"))
+        cproc();
+    // Debugging function
+    else if (!strcmp(args[0], "env"))
+        for (char **env = __environ; *env; env++)
+            printf("%s\n", *env);
     else
     {
         if (COMMAND[strlen(COMMAND) - 1] == '&')

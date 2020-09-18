@@ -14,6 +14,33 @@ extern int childCount;
 char DIR_PATH[PATH_MAX + 1 - MAX_FILE_NAME];
 char FILE_PATH[PATH_MAX + 1];
 
+int cash_setenv(char *args[])
+{
+    int argCount = 0;
+    while (args[argCount] != NULL)
+        argCount++;
+
+    if (argCount == 1 || argCount > 3)
+    {
+        fprintf(stderr, "Usage: setenv var [value]\n");
+        return 0;
+    }
+    return setenv(args[1], args[2] != NULL ? args[2] : "", 1);
+}
+
+int cash_unsetenv(char *args[])
+{
+    int argCount = 0;
+    while (args[argCount] != NULL)
+        argCount++;
+    if (argCount != 2)
+    {
+        fprintf(stderr, "Usage: unsetenv var\n");
+        return 0;
+    }
+    return unsetenv(args[1]);
+}
+
 // Method to implement background process execution
 int bExec(char *args[])
 {
@@ -60,7 +87,7 @@ int bExec(char *args[])
 }
 
 // Method to implement cd
-int cd(char **args)
+int cd(char *args[])
 {
     char *LOC = args[1];
     char code;
