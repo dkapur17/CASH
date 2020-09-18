@@ -60,7 +60,7 @@ void cleanCommand(char *COMMAND, char *exitBool)
     COMMAND_CLEANED[strlen(COMMAND_CLEANED) - 1] = '\0';
     // If the command has some length, look to execute it
     if (strlen(COMMAND_CLEANED))
-        execCommand(COMMAND_CLEANED, exitBool);
+        handlePipes(COMMAND_CLEANED, exitBool);
 }
 
 // Debugging method. Lists all active children processes.
@@ -245,6 +245,71 @@ int generatePS(char init, char *PS, char *INVOC_LOC)
     // If the current directory is the same as the invocation location, then display ~ instead of the whole path
     sprintf(PS, "<%s@%s:%s> ", UNAME, SYSNAME_BUFF, PWD);
     return 0;
+}
+
+void handlePipes(char *inputString, char *exitBool)
+{
+    int comCount = 1;
+    int len = strlen(inputString);
+    for (int i = 0; i < len; i++)
+        if (inputString[i] == '|')
+            comCount++;
+    if (comCount == 1)
+        execCommand(inputString, exitBool);
+    else
+    {
+        char *commands[comCount] = {NULL};
+        for (int i = 0; i <= comCount; i++)
+            commands[i] = NULL;
+
+        comCount = 0;
+        commands[0] = strtok(inputString, "|");
+        while (commands[comCount] != NULL)
+        {
+            comCount++;
+            commands[comCount] = strtok(NULL, "|");
+        }
+        for (int i = 0; i < comCount; i++)
+        {
+            if (commands[i][0] == ' ')
+                commands[i]++;
+            if (commands[i][strlen(commands[i]) - 1] == ' ')
+                commands[i][strlen(commands[i]) - 1] = '\0';
+        }
+        int pipeCount = comCount - 1;
+        int fds[2 * pipeCount];
+        for (int i = 0; i < 2 * pipeCount; i += 2)
+            if (pipe(fds + i))
+            {
+                fprintf(stderr, "Unable to create pipe\n");
+                return;
+            }
+        int pid;
+        int counter = 0;
+
+        for (int i = 0; i < comCount; i++)
+        {
+            pid = fork();
+            if (pid == 0)
+            {
+                // If not the last command, link the block's write fd to stdout
+                if (i < pipeCount)
+                    dup2(fds[2 * i + 1], STDOUT);
+                // If not the first command, link the previous block's read fd to stdin
+                if (i > 0)
+                    dup2(fds[2 * i - 2], STDIN);
+                for (int j = 0; j < 2 * pipeCount; j++)
+                    close(fds[j]);
+                char *command = commands[i];
+                execCommand(command, exitBool);
+                exit(0);
+            }
+        }
+        for (int i = 0; i < 2 * pipeCount; i++)
+            close(fds[i]);
+        for (int i = 0; i < comCount; i++)
+            wait(NULL);
+    }
 }
 
 // Initialize the child pool to empty processes

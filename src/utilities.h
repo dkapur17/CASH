@@ -13,6 +13,8 @@ void execCommand(char *COMMAND, char *exitBool);
 
 int generatePS(char init, char *PS, char *INVOC_LOC);
 
+void handlePipes(char *inputString, char *exitBool);
+
 void initChildren();
 
 int insertChild(int pid, char *pName);
