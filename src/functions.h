@@ -18,6 +18,8 @@ int fExec(char *args[]);
 
 void jobs();
 
+int kjob(char *args[]);
+
 void printPermissions(mode_t bits);
 
 void ls_printPermissions(mode_t bits);

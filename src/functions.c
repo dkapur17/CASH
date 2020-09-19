@@ -53,6 +53,7 @@ int cash_unsetenv(char *args[])
     return unsetenv(args[1]);
 }
 
+// Method to print all environment variables
 int cash_env()
 {
     for (char **env = __environ; *env; env++)
@@ -170,6 +171,61 @@ void jobs()
     for (int i = 0; i < MAX_CHLD_COUNT; i++)
         if (children[i].pid != -1)
             printf("[%d] Running %s [%d]\n", i + 1, children[i].pName, (int)children[i].pid);
+}
+
+// Method to implement kjob
+int kjob(char *args[])
+{
+    // Count arguments
+    int argCount = 0;
+    while (args[argCount] != NULL)
+        argCount++;
+
+    // If not proper argument structure, return usage message
+    if (argCount != 3)
+    {
+        fprintf(stderr, "Usage: kjob <job number> <signal number>\n");
+        return 0;
+    }
+
+    // If 1st argument is not an integer
+    int jobIndexLen = strlen(args[1]);
+    for (int i = 0; i < jobIndexLen; i++)
+        if (!isdigit(args[1][i]))
+        {
+            fprintf(stderr, "<job number> must be an integer\n");
+            return 0;
+        }
+    // If 2nd argument is not an integer
+    int sigNumLen = strlen(args[2]);
+    for (int i = 0; i < sigNumLen; i++)
+        if (!isdigit(args[2][i]))
+        {
+            fprintf(stderr, "<signal number> must be an integer\n");
+            return 0;
+        }
+
+    int jobIndex = atoi(args[1]);
+    int sigNum = atoi(args[2]);
+
+    // If job number doesn't belong to any child in the pool
+    if (jobIndex > childCount)
+    {
+        fprintf(stderr, "No such process\n");
+        return 0;
+    }
+
+    // Fallback condition (kind of redundant though)
+    pid_t pid = children[jobIndex - 1].pid;
+    if (pid < 1)
+    {
+        fprintf(stderr, "No such process\n");
+        return 0;
+    }
+
+    // If all is fine, kill the process
+    else
+        return kill(pid, sigNum);
 }
 
 // Utility Function for ls. Used to print the permissions string for the -l flag

@@ -220,9 +220,17 @@ void execCommand(char *COMMAND)
         if (cash_unsetenv(args))
             perrorHandle(0);
     }
-    // Debugging function
     else if (!strcmp(args[0], "jobs"))
         jobs();
+    else if (!strcmp(args[0], "kjob"))
+    {
+        if (writeRedir != 0)
+            args[outfileLoc - 1] = NULL;
+        if (readRedir != 0)
+            args[infileLoc - 1] = NULL;
+        if (kjob(args))
+            perrorHandle(0);
+    }
     // Debugging function
     else if (!strcmp(args[0], "env"))
         cash_env();
@@ -516,6 +524,7 @@ void removeChild(pid_t pid)
             }
         }
     }
+    childCount--;
 }
 
 // Method to shorten PWD if it is a sub-directory of INVOC_LOC
@@ -554,7 +563,6 @@ void sigchldHandler(int sigNum)
                 sprintf(OSTRING, "\n%s with pid %d exited %s\n", children[i].pName, (int)pid, status != 0 ? "normally" : "abnormally");
                 write(STDERR, OSTRING, strlen(OSTRING));
                 removeChild(children[i].pid);
-                childCount--;
                 break;
             }
         procKill++;
