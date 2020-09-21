@@ -21,8 +21,6 @@ int main()
     // Initialzing child pool with empty process info instances
     initChildren();
 
-    umask(PERM);
-
     // Generate the intial prompt string and handle error if any
     clear();
     int psState = generatePS(1, PS, INVOC_LOC);

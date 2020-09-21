@@ -16,6 +16,8 @@ void echo(char *args[]);
 
 int fExec(char *args[]);
 
+int fg(char *args[]);
+
 void jobs();
 
 int kjob(char *args[]);

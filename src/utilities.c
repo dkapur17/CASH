@@ -123,18 +123,18 @@ void execCommand(char *COMMAND)
     // Redirecting STDIN and STDOUT as required
     int stdinBackup = dup(STDIN);
     int stdoutBackup = dup(STDOUT);
-    FILE *ip, *op;
+    // FILE *ip, *op;
+    int ipFd, opFd;
     if (readRedir)
     {
 
-        ip = fopen(args[infileLoc], "r");
-        if (ip == NULL)
+        ipFd = open(args[infileLoc], O_RDONLY);
+        if (ipFd < 0)
         {
             fprintf(stderr, "Unable to redirect input\n");
             perrorHandle(0);
             return;
         }
-        int ipFd = fileno(ip);
         if (dup2(ipFd, STDIN) == -1)
         {
             fprintf(stderr, "Unable to redirect input\n");
@@ -144,14 +144,14 @@ void execCommand(char *COMMAND)
     }
     if (writeRedir)
     {
-        op = fopen(args[outfileLoc], writeRedir == 1 ? "w+" : "a+");
-        if (op == NULL)
+        int opMethod = writeRedir == 1 ? O_TRUNC : O_APPEND;
+        opFd = open(args[outfileLoc], O_CREAT | O_WRONLY | opMethod, PERM);
+        if (opFd < 0)
         {
             fprintf(stderr, "Unable to redirect output\n");
             perrorHandle(0);
             return;
         }
-        int opFd = fileno(op);
         if (dup2(opFd, STDOUT) == -1)
         {
             fprintf(stderr, "Unable to redirect output\n");
@@ -231,6 +231,15 @@ void execCommand(char *COMMAND)
         if (kjob(args))
             perrorHandle(0);
     }
+    else if(!strcmp(args[0], "fg"))
+    {
+        if (writeRedir != 0)
+            args[outfileLoc - 1] = NULL;
+        if (readRedir != 0)
+            args[infileLoc - 1] = NULL;
+        if (fg(args))
+            perrorHandle(0);
+    }
     // Debugging function
     else if (!strcmp(args[0], "env"))
         cash_env();
@@ -260,12 +269,12 @@ void execCommand(char *COMMAND)
     // Reset STDIN and STDOUT if required
     if (readRedir)
     {
-        fclose(ip);
+        close(ipFd);
         dup2(stdinBackup, STDIN);
     }
     if (writeRedir)
     {
-        fclose(op);
+        close(opFd);
         dup2(stdoutBackup, STDOUT);
     }
 }

@@ -58,6 +58,7 @@ int cash_env()
 {
     for (char **env = __environ; *env; env++)
         printf("%s\n", *env);
+    return 0;
 }
 
 // Method to implement background process execution
@@ -164,6 +165,37 @@ int fExec(char *args[])
     else
         wait(NULL);
     return 0;
+}
+
+int fg(char *args[])
+{
+    int argCount = 0;
+    while (args[argCount] != NULL)
+        argCount++;
+    if (argCount != 2)
+    {
+        fprintf(stderr, "Usage: fg <job number>\n");
+        return 0;
+    }
+    int jobIndexLen = strlen(args[1]);
+    for (int i = 0; i < jobIndexLen; i++)
+        if (!isdigit(args[1][i]))
+        {
+            fprintf(stderr, "<job number> must be an integer\n");
+            return 0;
+        }
+    int jobIndex = atoi(args[1]);
+    if (jobIndex > childCount)
+    {
+        fprintf(stderr, "No such process\n");
+        return 0;
+    }
+
+    pid_t shellPGID = getpgid(0);
+    if (shellPGID == -1)
+        return -1;
+
+    return setpgid(children[jobIndex - 1].pid, shellPGID);
 }
 
 void jobs()

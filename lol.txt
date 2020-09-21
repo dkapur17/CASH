@@ -1,2 +1,0 @@
-[1] Running vim [338]
-[2] Running vim [339]
