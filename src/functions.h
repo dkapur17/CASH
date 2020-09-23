@@ -12,7 +12,7 @@ int cd(char *args[]);
 
 int bExec(char *args[]);
 
-int bg(char * args[]);
+int bg(char *args[]);
 
 void echo(char *args[]);
 
@@ -37,6 +37,8 @@ void nw_interrupt(int sleepDur);
 void nw_newborn(int sleepDur);
 
 void nightswatch(char *args[]);
+
+int overkill(char *args[]);
 
 int pinfo(char *args[]);
 

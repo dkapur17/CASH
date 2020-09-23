@@ -722,6 +722,16 @@ void nightswatch(char *args[])
         fprintf(stderr, "%s Error: Unknown Command: %s\n", SHELL_NAME, args[1]);
 }
 
+int overkill(char *args[])
+{
+    int killStat = 0;
+    while (childCount)
+        if (kill(children[0].pid, SIGKILL))
+            return 1;
+
+    return 0;
+}
+
 // Method to implement pinfo
 int pinfo(char *args[])
 {
