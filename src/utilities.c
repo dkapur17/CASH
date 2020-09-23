@@ -13,6 +13,7 @@ extern char INVOC_LOC[];
 extern char SHELL_NAME[];
 extern char GREETING[];
 extern char PS[];
+extern pid_t fgPid;
 
 // Temporary buffer to print arbitrary messages to the terminal
 char OSTRING[512];
@@ -447,20 +448,37 @@ int insertChild(int pid, char *pName)
 }
 
 // Set up the signal handler
-void installHandler()
+void installHandlers()
 {
+    /*-----------------SIGCHLD---------------------*/
     // Create a sigaction instance
-    struct sigaction action;
+    struct sigaction sigchld_action;
     // Initialize its memory space to 0
-    memset(&action, 0, sizeof(action));
+    memset(&sigchld_action, 0, sizeof(sigchld_action));
     // Set its handler function
-    action.sa_handler = sigchldHandler;
+    sigchld_action.sa_handler = sigchldHandler;
     // After signal is handled, restart halted syscalls
-    action.sa_flags = SA_RESTART;
+    sigchld_action.sa_flags = SA_RESTART;
     // No flags to mask
-    sigemptyset(&action.sa_mask);
+    sigemptyset(&sigchld_action.sa_mask);
     // Run the handler for ever SIGCHLD signal recieved
-    sigaction(SIGCHLD, &action, NULL);
+    sigaction(SIGCHLD, &sigchld_action, NULL);
+
+    /*-----------------SIGINT---------------------*/
+    struct sigaction sigint_action;
+    memset(&sigint_action, 0, sizeof(sigint_action));
+    sigint_action.sa_handler = sigintHandler;
+    sigint_action.sa_flags = SA_RESTART;
+    sigemptyset(&sigint_action.sa_mask);
+    sigaction(SIGINT, &sigint_action, NULL);
+
+    /*-----------------SIGTSTP---------------------*/
+    struct sigaction sigtstp_action;
+    memset(&sigtstp_action, 0, sizeof(sigtstp_action));
+    sigtstp_action.sa_handler = sigtstpHandler;
+    sigtstp_action.sa_flags = SA_RESTART;
+    sigemptyset(&sigtstp_action.sa_mask);
+    sigaction(SIGTSTP, &sigtstp_action, NULL);
 }
 
 // Utility function to get the max of two numbers
@@ -597,5 +615,25 @@ void sigchldHandler(int sigNum)
     {
         write(STDOUT, "\n", 1);
         write(STDOUT, PS, strlen(PS));
+    }
+}
+
+void sigintHandler(int sigNum)
+{
+    write(STDOUT, "\n", 1);
+    write(STDOUT, PS, strlen(PS));
+}
+
+void sigtstpHandler(int sigNum)
+{
+    if (fgPid == getpid())
+    {
+        write(STDOUT, "\n", 1);
+        write(STDOUT, PS, strlen(PS));
+    }
+    else
+    {
+        kill(fgPid, SIGTSTP);
+        fgPid = getpid();
     }
 }

@@ -17,7 +17,7 @@ void initChildren();
 
 int insertChild(int pid, char *pName);
 
-void installHandler();
+void installHandlers();
 
 int max(int a, int b);
 
@@ -32,5 +32,9 @@ void removeChild(pid_t pid);
 void shortenPath(char *prefix, char *path);
 
 void sigchldHandler(int sigNum);
+
+void sigintHandler(int sigNum);
+
+void sigtstpHandler(int sigNum);
 
 #endif

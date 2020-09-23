@@ -4,7 +4,6 @@ cash: cash.o utilities.o functions.o
 	g++ -g cash.o utilities.o functions.o -o cash
 	mv *.o ./obj
 	chmod +x cash
-	./cash
 
 cash.o: ./src/cash.c
 	g++ -c ./src/cash.c
