@@ -163,7 +163,7 @@ void execCommand(char *COMMAND)
     }
 
     // Going through the command and run the required function
-    if (!strcmp(args[0], "exit"))
+    if (!strcmp(args[0], "exit") || !strcmp(args[0], "quit"))
         exit(0);
     else if (!strcmp(args[0], "clear"))
         clear();

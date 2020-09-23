@@ -30,7 +30,8 @@ int main()
     while (1)
     {
         printf("%s", PS);
-        fgets(INPUT_STRING, MAX_COMMAND_LEN, stdin);
+        if (!fgets(INPUT_STRING, MAX_COMMAND_LEN, stdin))
+            break;
         if (strcmp(INPUT_STRING, "\n"))
             parseInputString(INPUT_STRING);
         else
