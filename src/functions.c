@@ -11,7 +11,6 @@ extern char INVOC_LOC[];
 extern char SHELL_NAME[];
 extern struct pData children[];
 extern int childCount;
-extern pid_t fgPid;
 
 char DIR_PATH[PATH_MAX + 1 - MAX_FILE_NAME];
 char FILE_PATH[PATH_MAX + 1];
@@ -185,7 +184,6 @@ int fExec(char *args[])
     }
     // Fork the process and handle error
     pid_t pid = fork();
-    fgPid = pid;
     if (pid < 0)
         return -1;
 
@@ -200,10 +198,7 @@ int fExec(char *args[])
     }
     // In the parent process, await completion of child
     else
-    {
         wait(NULL);
-        fgPid = getpid();
-    }
     return 0;
 }
 
@@ -242,7 +237,7 @@ int fg(char *args[])
     signal(SIGTTOU, SIG_DFL);
     signal(SIGTTIN, SIG_DFL);
     removeChild(pid);
-    return status;
+    return 0;
 }
 
 int jobs()
@@ -269,6 +264,7 @@ int jobs()
         // Printing the output
         printf("[%d] %s %s [%d]\n", i + 1, runStat == 'S' ? "Running" : "Stopped", children[i].pName, (int)children[i].pid);
     }
+    return 0;
 }
 
 // Method to implement kjob
@@ -731,8 +727,12 @@ int overkill(char *args[])
 {
     int killStat = 0;
     while (childCount)
+    {
+        if(children[0].pid == -1)
+            return 1;
         if (kill(children[0].pid, SIGKILL))
             return 1;
+    }
 
     return 0;
 }

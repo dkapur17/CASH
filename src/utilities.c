@@ -13,7 +13,6 @@ extern char INVOC_LOC[];
 extern char SHELL_NAME[];
 extern char GREETING[];
 extern char PS[];
-extern pid_t fgPid;
 
 // Temporary buffer to print arbitrary messages to the terminal
 char OSTRING[512];
@@ -435,15 +434,9 @@ int insertChild(int pid, char *pName)
     // Exit if pool is full
     if (childCount == MAX_CHLD_COUNT)
         return -1;
-    // Otherwise find the first empty place
-    for (int i = 0; i < MAX_CHLD_COUNT; i++)
-        if (children[i].pid == -1)
-        {
-            children[i].pid = pid;
-            strcpy(children[i].pName, pName);
-            childCount++;
-            break;
-        }
+    children[childCount].pid = pid;
+    strcpy(children[childCount].pName, pName);
+    childCount++;
     return 0;
 }
 
@@ -626,14 +619,6 @@ void sigintHandler(int sigNum)
 
 void sigtstpHandler(int sigNum)
 {
-    if (fgPid == getpid())
-    {
-        write(STDOUT, "\n", 1);
-        write(STDOUT, PS, strlen(PS));
-    }
-    else
-    {
-        kill(fgPid, SIGTSTP);
-        fgPid = getpid();
-    }
+    write(STDOUT, "\n", 1);
+    write(STDOUT, PS, strlen(PS));
 }
