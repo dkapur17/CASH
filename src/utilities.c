@@ -242,6 +242,15 @@ void execCommand(char *COMMAND)
         if (fg(args))
             perrorHandle(0);
     }
+    else if (!strcmp(args[0], "bg"))
+    {
+        if (writeRedir != 0)
+            args[outfileLoc - 1] = NULL;
+        if (readRedir != 0)
+            args[infileLoc - 1] = NULL;
+        if (bg(args))
+            perrorHandle(0);
+    }
     // Debugging function
     else if (!strcmp(args[0], "env"))
         cash_env();

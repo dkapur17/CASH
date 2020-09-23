@@ -15,52 +15,6 @@ extern int childCount;
 char DIR_PATH[PATH_MAX + 1 - MAX_FILE_NAME];
 char FILE_PATH[PATH_MAX + 1];
 
-// Method to implement setenv
-int cash_setenv(char *args[])
-{
-    // Count number of arguments
-    int argCount = 0;
-    while (args[argCount] != NULL)
-        argCount++;
-
-    // If ill formatted command, return usage message
-    if (argCount == 1 || argCount > 3)
-    {
-        fprintf(stderr, "Usage: setenv var [value]\n");
-        return 0;
-    }
-
-    // Set the variable and return
-    return setenv(args[1], args[2] != NULL ? args[2] : "", 1);
-}
-
-// Method to implement unsetenv
-int cash_unsetenv(char *args[])
-{
-    // Count number of arguments
-    int argCount = 0;
-    while (args[argCount] != NULL)
-        argCount++;
-
-    // If ill formatted command, return usage message
-    if (argCount != 2)
-    {
-        fprintf(stderr, "Usage: unsetenv var\n");
-        return 0;
-    }
-
-    // Unset the variable and return
-    return unsetenv(args[1]);
-}
-
-// Method to print all environment variables
-int cash_env()
-{
-    for (char **env = __environ; *env; env++)
-        printf("%s\n", *env);
-    return 0;
-}
-
 // Method to implement background process execution
 int bExec(char *args[])
 {
@@ -111,6 +65,79 @@ int bExec(char *args[])
         insertChild(pid, args[0]);
     }
 
+    return 0;
+}
+
+int bg(char *args[])
+{
+    int argCount = 0;
+    while (args[argCount] != NULL)
+        argCount++;
+    if (argCount != 2)
+    {
+        fprintf(stderr, "Usage: fg <job number>\n");
+        return 0;
+    }
+    int jobIndexLen = strlen(args[1]);
+    for (int i = 0; i < jobIndexLen; i++)
+        if (!isdigit(args[1][i]))
+        {
+            fprintf(stderr, "<job number> must be an integer\n");
+            return 0;
+        }
+    int jobIndex = atoi(args[1]);
+    if (jobIndex > childCount)
+    {
+        fprintf(stderr, "No such process\n");
+        return 0;
+    }
+
+    return kill(children[jobIndex - 1].pid, SIGCONT);
+}
+
+// Method to implement setenv
+int cash_setenv(char *args[])
+{
+    // Count number of arguments
+    int argCount = 0;
+    while (args[argCount] != NULL)
+        argCount++;
+
+    // If ill formatted command, return usage message
+    if (argCount == 1 || argCount > 3)
+    {
+        fprintf(stderr, "Usage: setenv var [value]\n");
+        return 0;
+    }
+
+    // Set the variable and return
+    return setenv(args[1], args[2] != NULL ? args[2] : "", 1);
+}
+
+// Method to implement unsetenv
+int cash_unsetenv(char *args[])
+{
+    // Count number of arguments
+    int argCount = 0;
+    while (args[argCount] != NULL)
+        argCount++;
+
+    // If ill formatted command, return usage message
+    if (argCount != 2)
+    {
+        fprintf(stderr, "Usage: unsetenv var\n");
+        return 0;
+    }
+
+    // Unset the variable and return
+    return unsetenv(args[1]);
+}
+
+// Method to print all environment variables
+int cash_env()
+{
+    for (char **env = __environ; *env; env++)
+        printf("%s\n", *env);
     return 0;
 }
 

@@ -12,6 +12,8 @@ int cd(char *args[]);
 
 int bExec(char *args[]);
 
+int bg(char * args[]);
+
 void echo(char *args[]);
 
 int fExec(char *args[]);
