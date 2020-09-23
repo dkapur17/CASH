@@ -18,7 +18,7 @@ int fExec(char *args[]);
 
 int fg(char *args[]);
 
-void jobs();
+int jobs();
 
 int kjob(char *args[]);
 

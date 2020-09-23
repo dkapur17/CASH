@@ -198,11 +198,30 @@ int fg(char *args[])
     return setpgid(children[jobIndex - 1].pid, shellPGID);
 }
 
-void jobs()
+int jobs()
 {
-    for (int i = 0; i < MAX_CHLD_COUNT; i++)
-        if (children[i].pid != -1)
-            printf("[%d] Running %s [%d]\n", i + 1, children[i].pName, (int)children[i].pid);
+    char filePath[20];
+    char statRead[100];
+    FILE *procStat;
+    for (int i = 0; i < childCount; i++)
+    {
+        // Reading run status
+        sprintf(filePath, "/proc/%d/stat", (int)children[i].pid);
+        procStat = fopen(filePath, "r");
+        if (procStat == NULL)
+        {
+            errno = ESRCH;
+            return -1;
+        }
+        fread(statRead, 100, 1, procStat);
+        fclose(procStat);
+        char *temp = strtok(statRead, " ");
+        temp = strtok(NULL, " ");
+        temp = strtok(NULL, " ");
+        char runStat = temp[0];
+        // Printing the output
+        printf("[%d] %s %s [%d]\n", i + 1, runStat == 'S' ? "Running" : "Stopped", children[i].pName, (int)children[i].pid);
+    }
 }
 
 // Method to implement kjob

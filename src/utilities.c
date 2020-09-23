@@ -130,6 +130,7 @@ void execCommand(char *COMMAND)
         ipFd = open(args[infileLoc], O_RDONLY);
         if (ipFd < 0)
         {
+            close(stdinBackup);
             fprintf(stderr, "Unable to redirect input\n");
             perrorHandle(0);
             return;
@@ -148,6 +149,7 @@ void execCommand(char *COMMAND)
         opFd = open(args[outfileLoc], O_CREAT | O_WRONLY | opMethod, PERM);
         if (opFd < 0)
         {
+            close(stdoutBackup);
             fprintf(stderr, "Unable to redirect output\n");
             perrorHandle(0);
             return;
