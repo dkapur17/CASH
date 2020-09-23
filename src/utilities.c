@@ -121,13 +121,12 @@ void execCommand(char *COMMAND)
     }
 
     // Redirecting STDIN and STDOUT as required
-    int stdinBackup = dup(STDIN);
-    int stdoutBackup = dup(STDOUT);
-    // FILE *ip, *op;
+    int stdinBackup;
+    int stdoutBackup;
     int ipFd, opFd;
     if (readRedir)
     {
-
+        stdinBackup = dup(STDIN);
         ipFd = open(args[infileLoc], O_RDONLY);
         if (ipFd < 0)
         {
@@ -144,6 +143,7 @@ void execCommand(char *COMMAND)
     }
     if (writeRedir)
     {
+        stdoutBackup = dup(STDOUT);
         int opMethod = writeRedir == 1 ? O_TRUNC : O_APPEND;
         opFd = open(args[outfileLoc], O_CREAT | O_WRONLY | opMethod, PERM);
         if (opFd < 0)
@@ -231,7 +231,7 @@ void execCommand(char *COMMAND)
         if (kjob(args))
             perrorHandle(0);
     }
-    else if(!strcmp(args[0], "fg"))
+    else if (!strcmp(args[0], "fg"))
     {
         if (writeRedir != 0)
             args[outfileLoc - 1] = NULL;
