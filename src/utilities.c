@@ -517,14 +517,14 @@ void psError(int psState)
 // Method to remove a child from the pool, given its pid
 void removeChild(pid_t pid)
 {
-    char removed = 0;
+    char found = 0;
     // If a child process that is in the middle of the array is killed, the processes
     // ahead of it are moved back one space to keep them contigeous
     for (int i = 0; i < childCount; i++)
     {
-        if (children[i].pid == pid && !removed)
-            removed = 1;
-        if (removed)
+        if (children[i].pid == pid && !found)
+            found = 1;
+        if (found)
         {
             if (i == childCount - 1)
                 children[i].pid = -1;

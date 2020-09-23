@@ -71,6 +71,12 @@ int bExec(char *args[])
         sprintf(execPath, "%s%s", INVOC_LOC, args[0] + 1);
         args[0] = execPath;
     }
+    for (int i = 0; args[i] != NULL; i++)
+        if (!strcmp(args[i], "&"))
+        {
+            args[i] = NULL;
+            break;
+        }
 
     // Fork the process, if error, return
     pid_t pid = fork();
@@ -101,7 +107,9 @@ int bExec(char *args[])
     }
     // In the parent process, insert the child process into the pool and wait for 1 second before resuming (for aesthetics)
     else
+    {
         insertChild(pid, args[0]);
+    }
 
     return 0;
 }
@@ -191,11 +199,18 @@ int fg(char *args[])
         return 0;
     }
 
-    pid_t shellPGID = getpgid(0);
-    if (shellPGID == -1)
-        return -1;
-
-    return setpgid(children[jobIndex - 1].pid, shellPGID);
+    pid_t pid = children[jobIndex - 1].pid;
+    signal(SIGTTOU, SIG_IGN);
+    signal(SIGTTIN, SIG_IGN);
+    tcsetpgrp(STDIN, pid);
+    kill(pid, SIGCONT);
+    int status;
+    waitpid(pid, &status, WUNTRACED);
+    tcsetpgrp(STDIN, getpid());
+    signal(SIGTTOU, SIG_DFL);
+    signal(SIGTTIN, SIG_DFL);
+    removeChild(pid);
+    return status;
 }
 
 int jobs()
