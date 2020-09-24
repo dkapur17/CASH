@@ -9,6 +9,7 @@ char GREETING[100] = "Welcome to CASH -> Cliche Average SHell\n";
 // Important global variables
 char PS[LOGIN_NAME_MAX + HOST_NAME_MAX + PATH_MAX + 5];
 char INVOC_LOC[PATH_MAX + 1];
+char PREV_LOC[PATH_MAX + 1];
 char INPUT_STRING[MAX_COMMAND_LEN + 1];
 
 char **__environ;

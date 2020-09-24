@@ -8,6 +8,7 @@
 // Variables Declared elsewhere
 extern char OSTRING[];
 extern char INVOC_LOC[];
+extern char PREV_LOC[];
 extern char SHELL_NAME[];
 extern struct pData children[];
 extern int childCount;
@@ -146,8 +147,13 @@ int cd(char *args[])
 {
     char *LOC = args[1];
     char code;
+    char temp[PATH_MAX + 1];
+    strcpy(temp, PREV_LOC);
+    getcwd(PREV_LOC, PATH_MAX);
     if (LOC == NULL || !strcmp(LOC, ">") || !strcmp(LOC, ">>") || !strcmp(LOC, "<") || !strcmp(LOC, "~"))
         code = chdir(INVOC_LOC);
+    else if(!strcmp(LOC, "-"))
+        code = chdir(temp);
     else if (LOC[0] == '~')
     {
         code = chdir(INVOC_LOC);
@@ -156,7 +162,8 @@ int cd(char *args[])
     }
     else
         code = chdir(LOC);
-
+    if(code) // Some invalid location
+        strcpy(PREV_LOC, temp);
     return code;
 }
 

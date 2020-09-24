@@ -10,6 +10,7 @@ int childCount = 0;
 
 // Variables declared elsewhere
 extern char INVOC_LOC[];
+extern char PREV_LOC[];
 extern char SHELL_NAME[];
 extern char GREETING[];
 extern char PS[];
@@ -318,6 +319,7 @@ int generatePS(char init, char *PS, char *INVOC_LOC)
     {
         if (getcwd(INVOC_LOC, PATH_MAX) == NULL)
             return -3;
+        strcpy(PREV_LOC, INVOC_LOC);
     }
 
     // Get current directory and handle potential error
