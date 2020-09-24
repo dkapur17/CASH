@@ -622,5 +622,4 @@ void sigintHandler(int sigNum)
 void sigtstpHandler(int sigNum)
 {
     write(STDOUT, "\n", 1);
-    write(STDOUT, PS, strlen(PS));
 }

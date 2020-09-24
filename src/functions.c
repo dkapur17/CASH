@@ -210,7 +210,12 @@ int fExec(char *args[])
     }
     // In the parent process, await completion of child
     else
-        wait(NULL);
+    {
+        int status;
+        if(waitpid(pid, &status, WUNTRACED) > 0)
+            if(WIFSTOPPED(status))
+                insertChild(pid, args[0]);
+    }
     return 0;
 }
 
@@ -239,16 +244,22 @@ int fg(char *args[])
     }
 
     pid_t pid = children[jobIndex - 1].pid;
+    char pName[MAX_FILE_NAME + 1];
+    strcpy(pName, children[jobIndex - 1].pName);
+    removeChild(pid);
     signal(SIGTTOU, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
-    tcsetpgrp(STDIN, pid);
+    tcsetpgrp(STDIN, getpgid(pid));
     kill(pid, SIGCONT);
+
     int status;
-    waitpid(pid, &status, WUNTRACED);
-    tcsetpgrp(STDIN, getpid());
+    if(waitpid(pid, &status, WUNTRACED) > 0)
+        if(WIFSTOPPED(status))
+            insertChild(pid, pName);
+
+    tcsetpgrp(STDIN, getpgid(0));
     signal(SIGTTOU, SIG_DFL);
     signal(SIGTTIN, SIG_DFL);
-    removeChild(pid);
     return 0;
 }
 
