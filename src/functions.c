@@ -12,6 +12,7 @@ extern char PREV_LOC[];
 extern char SHELL_NAME[];
 extern struct pData children[];
 extern int childCount;
+extern char fgP;
 
 char DIR_PATH[PATH_MAX + 1 - MAX_FILE_NAME];
 char FILE_PATH[PATH_MAX + 1];
@@ -196,6 +197,7 @@ int fExec(char *args[])
     }
     // Fork the process and handle error
     pid_t pid = fork();
+    fgP = 1;
     if (pid < 0)
         return -1;
 
@@ -215,6 +217,7 @@ int fExec(char *args[])
         if(waitpid(pid, &status, WUNTRACED) > 0)
             if(WIFSTOPPED(status))
                 insertChild(pid, args[0]);
+        fgP = 0;
     }
     return 0;
 }
@@ -249,15 +252,24 @@ int fg(char *args[])
     removeChild(pid);
     signal(SIGTTOU, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
-    tcsetpgrp(STDIN, getpgid(pid));
+    fgP = 1;
+    if(tcsetpgrp(STDIN, getpgid(pid)))
+    {
+        fprintf(stderr, "Could not give terminal control to job %d\n", jobIndex);
+        perrorHandle(0);
+        return -1;
+    }
     kill(pid, SIGCONT);
-
     int status;
     if(waitpid(pid, &status, WUNTRACED) > 0)
         if(WIFSTOPPED(status))
             insertChild(pid, pName);
-
-    tcsetpgrp(STDIN, getpgid(0));
+    fgP = 0;
+    if(tcsetpgrp(STDIN, getpgid(0)))
+    {
+        fprintf(stderr, "Could not return terminal controll to the shell. Exitting the shell\n");
+        perrorHandle(1);
+    }
     signal(SIGTTOU, SIG_DFL);
     signal(SIGTTIN, SIG_DFL);
     return 0;

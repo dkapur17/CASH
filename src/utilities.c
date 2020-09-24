@@ -14,6 +14,7 @@ extern char PREV_LOC[];
 extern char SHELL_NAME[];
 extern char GREETING[];
 extern char PS[];
+extern char fgP;
 
 // Temporary buffer to print arbitrary messages to the terminal
 char OSTRING[512];
@@ -240,8 +241,7 @@ void execCommand(char *COMMAND)
             args[outfileLoc - 1] = NULL;
         if (readRedir != 0)
             args[infileLoc - 1] = NULL;
-        if (fg(args))
-            perrorHandle(0);
+        fg(args);
     }
     else if (!strcmp(args[0], "bg"))
     {
@@ -616,10 +616,13 @@ void sigchldHandler(int sigNum)
 void sigintHandler(int sigNum)
 {
     write(STDOUT, "\n", 1);
-    write(STDOUT, PS, strlen(PS));
+    if(!fgP)
+        write(STDOUT, PS, strlen(PS));
 }
 
 void sigtstpHandler(int sigNum)
 {
     write(STDOUT, "\n", 1);
+    if(!fgP)
+        write(STDOUT, PS, strlen(PS));
 }
