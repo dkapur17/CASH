@@ -153,7 +153,12 @@ int cd(char *args[])
     if (LOC == NULL || !strcmp(LOC, ">") || !strcmp(LOC, ">>") || !strcmp(LOC, "<") || !strcmp(LOC, "~"))
         code = chdir(INVOC_LOC);
     else if(!strcmp(LOC, "-"))
+    {
+        strcpy(OSTRING, temp);
+        shortenPath(INVOC_LOC, OSTRING);
+        printf("%s\n", OSTRING);
         code = chdir(temp);
+    }
     else if (LOC[0] == '~')
     {
         code = chdir(INVOC_LOC);
