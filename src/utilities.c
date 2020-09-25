@@ -613,6 +613,7 @@ void sigchldHandler(int sigNum)
     }
 }
 
+// Method the handle Ctrl-C from the user
 void sigintHandler(int sigNum)
 {
     write(STDOUT, "\n", 1);
@@ -620,6 +621,7 @@ void sigintHandler(int sigNum)
         write(STDOUT, PS, strlen(PS));
 }
 
+// Method to handle Ctrl-Z from the user
 void sigtstpHandler(int sigNum)
 {
     write(STDOUT, "\n", 1);

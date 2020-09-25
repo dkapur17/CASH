@@ -70,8 +70,10 @@ int bExec(char *args[])
     return 0;
 }
 
+// Method to implement bg
 int bg(char *args[])
 {
+    // Syntax checking
     int argCount = 0;
     while (args[argCount] != NULL)
         argCount++;
@@ -87,6 +89,8 @@ int bg(char *args[])
             fprintf(stderr, "<job number> must be an integer\n");
             return 0;
         }
+    
+    // Validating given job index
     int jobIndex = atoi(args[1]);
     if (jobIndex > childCount)
     {
@@ -94,6 +98,7 @@ int bg(char *args[])
         return 0;
     }
 
+    // Tell the required job to change its state to running
     return kill(children[jobIndex - 1].pid, SIGCONT);
 }
 
@@ -222,8 +227,10 @@ int fExec(char *args[])
     return 0;
 }
 
+// Method the handle the fg command
 int fg(char *args[])
 {
+    // Syntax handling
     int argCount = 0;
     while (args[argCount] != NULL)
         argCount++;
@@ -239,6 +246,8 @@ int fg(char *args[])
             fprintf(stderr, "<job number> must be an integer\n");
             return 0;
         }
+    
+    // Verifying job number
     int jobIndex = atoi(args[1]);
     if (jobIndex > childCount)
     {
@@ -246,35 +255,66 @@ int fg(char *args[])
         return 0;
     }
 
+    // Getting process information from child pool
     pid_t pid = children[jobIndex - 1].pid;
     char pName[MAX_FILE_NAME + 1];
     strcpy(pName, children[jobIndex - 1].pName);
+
+    // Removing process from child pool because it is being moved to the foreground
     removeChild(pid);
+
+    // Ignoring required signals from the shell
     signal(SIGTTOU, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
+
+    // Setting foreground process flag to 1 to indicate that there is a foreground process running
     fgP = 1;
+
+    // Giving the specified process terminal control and checking for errors
     if(tcsetpgrp(STDIN, getpgid(pid)))
     {
         fprintf(stderr, "Could not give terminal control to job %d\n", jobIndex);
+        // Control couldn't be give to the child process, we want the shell to continue
+        // Set signal handlers to default
+        signal(SIGTTOU, SIG_DFL);
+        signal(SIGTTIN, SIG_DFL);
+        // Print error message and return from the function.
         perrorHandle(0);
         return -1;
     }
-    kill(pid, SIGCONT);
+    // Telling the job to resume and handling errors (same as above)
+    if(kill(pid, SIGCONT))
+    {
+        fprintf(stderr, "Unable to resume job %d\n", jobIndex);
+        signal(SIGTTOU, SIG_DFL);
+        signal(SIGTTIN, SIG_DFL);
+        perrorHandle(0);
+        return -1;
+    }
+
+    // Waiting for foreground process to be stopped or to terminate.
+    // If it is stopped (Ctrl+Z), add it to the child pool
     int status;
     if(waitpid(pid, &status, WUNTRACED) > 0)
         if(WIFSTOPPED(status))
             insertChild(pid, pName);
+
+    // Since the foreground process has been exitted from, set the flag back to 0
     fgP = 0;
+    // Return terminal control back to the shell and perform error handling
+    // If control cannot be returned, quit the program.
     if(tcsetpgrp(STDIN, getpgid(0)))
     {
         fprintf(stderr, "Could not return terminal controll to the shell. Exitting the shell\n");
         perrorHandle(1);
     }
+    // Restore default signal handlers
     signal(SIGTTOU, SIG_DFL);
     signal(SIGTTIN, SIG_DFL);
     return 0;
 }
 
+// Method to print the list of currently running jobs
 int jobs()
 {
     char filePath[20];
@@ -758,6 +798,7 @@ void nightswatch(char *args[])
         fprintf(stderr, "%s Error: Unknown Command: %s\n", SHELL_NAME, args[1]);
 }
 
+// Method to kill all child processes of the shell
 int overkill(char *args[])
 {
     int killStat = 0;

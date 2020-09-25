@@ -22,6 +22,8 @@ int main()
 
     // Initialzing child pool with empty process info instances
     initChildren();
+
+    // Set flag to 0 indicating there are no foreground processes running on top of the shell
     fgP = 0;
     // Generate the intial prompt string and handle error if any
     clear();
@@ -32,9 +34,10 @@ int main()
     while (1)
     {
         printf("%s", PS);
+        // If Ctrl-D is recieved, exit from the shell
         if (!fgets(INPUT_STRING, MAX_COMMAND_LEN, stdin))
             break;
-        if (strcmp(INPUT_STRING, "\n"))
+        else if (strcmp(INPUT_STRING, "\n"))
             parseInputString(INPUT_STRING);
         else
             printf("\n");
