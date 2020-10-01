@@ -16,6 +16,11 @@ extern char GREETING[];
 extern char PS[];
 extern char fgP;
 
+const char success[] = "\033[1;32m:')\033[0m ";
+const char failure[] = "\033[1;31m:'(\033[0m ";
+
+char exitCode;
+
 // Temporary buffer to print arbitrary messages to the terminal
 char OSTRING[512];
 
@@ -72,6 +77,7 @@ int digitCount(long long x)
 // Case-wise execution of cleaned commands
 void execCommand(char *COMMAND)
 {
+    exitCode = 1;
     // Checking for IO Redirection
     int len = strlen(COMMAND);
     char redir = 0;
@@ -135,12 +141,14 @@ void execCommand(char *COMMAND)
             close(stdinBackup);
             fprintf(stderr, "Unable to redirect input\n");
             perrorHandle(0);
+            exitCode = -1;
             return;
         }
         if (dup2(ipFd, STDIN) == -1)
         {
             fprintf(stderr, "Unable to redirect input\n");
             perrorHandle(0);
+            exitCode = -1;
             return;
         }
     }
@@ -154,12 +162,14 @@ void execCommand(char *COMMAND)
             close(stdoutBackup);
             fprintf(stderr, "Unable to redirect output\n");
             perrorHandle(0);
+            exitCode = -1;
             return;
         }
         if (dup2(opFd, STDOUT) == -1)
         {
             fprintf(stderr, "Unable to redirect output\n");
             perrorHandle(0);
+            exitCode = -1;
             return;
         }
     }
@@ -320,6 +330,7 @@ int generatePS(char init, char *PS, char *INVOC_LOC)
         if (getcwd(INVOC_LOC, PATH_MAX) == NULL)
             return -3;
         strcpy(PREV_LOC, INVOC_LOC);
+        exitCode = 0;
     }
 
     // Get current directory and handle potential error
@@ -331,7 +342,7 @@ int generatePS(char init, char *PS, char *INVOC_LOC)
     shortenPath(INVOC_LOC, PWD);
     // If all goes well, generate the prompt string and make PS point to it
     // If the current directory is the same as the invocation location, then display ~ instead of the whole path
-    sprintf(PS, "<%s@%s:%s> ", UNAME, SYSNAME_BUFF, PWD);
+    sprintf(PS, "%s\033[1;34m%s@%s:\033[01;33m%s\033[1;36m $\033[0m ", !exitCode ? "" : exitCode == 1 ? success : failure,  UNAME, SYSNAME_BUFF, PWD);
     return 0;
 }
 
@@ -383,6 +394,7 @@ void handlePipes(char *inputString)
             if (pipe(fds + i))
             {
                 fprintf(stderr, "Unable to create pipe\n");
+                exitCode = -1;
                 return;
             }
         int pid;
@@ -435,7 +447,12 @@ int insertChild(int pid, char *pName)
 {
     // Exit if pool is full
     if (childCount == MAX_CHLD_COUNT)
+    {
+        fprintf(stderr, "Unable to insert child process because the pool is full");
+        exitCode = -1;
         return -1;
+    }
+
     children[childCount].pid = pid;
     strcpy(children[childCount].pName, pName);
     childCount++;
@@ -604,11 +621,13 @@ void sigchldHandler(int sigNum)
                 break;
             }
         procKill++;
+        exitCode = status ? -1 : 1;
     }
     // If a process from the pool was killed, print a new prompt (for aesthetics)
     if (procKill)
     {
         write(STDOUT, "\n", 1);
+        generatePS(0, PS, INVOC_LOC);
         write(STDOUT, PS, strlen(PS));
     }
 }

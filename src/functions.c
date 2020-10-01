@@ -13,6 +13,7 @@ extern char SHELL_NAME[];
 extern struct pData children[];
 extern int childCount;
 extern char fgP;
+extern char exitCode;
 
 char DIR_PATH[PATH_MAX + 1 - MAX_FILE_NAME];
 char FILE_PATH[PATH_MAX + 1];
@@ -37,7 +38,10 @@ int bExec(char *args[])
     // Fork the process, if error, return
     pid_t pid = fork();
     if (pid < 0)
+    {
+        exitCode = -1;
         return -1;
+    }
 
     // In the child process
     if (pid == 0)
@@ -51,21 +55,19 @@ int bExec(char *args[])
             if (execvp(args[0], args))
             {
                 fprintf(stderr, "%s Error: Command not Found: %s\n", SHELL_NAME, args[0]);
-                exit(0);
+                exit(1);
             }
         }
         // If there is no more place in the pool for a new process, exit with code 17
         else
         {
             fprintf(stderr, "Child pool is full. New process cannot be added\n");
-            exit(0);
+            exit(1);
         }
     }
     // In the parent process, insert the child process into the pool and wait for 1 second before resuming (for aesthetics)
     else
-    {
         insertChild(pid, args[0]);
-    }
 
     return 0;
 }
@@ -80,6 +82,7 @@ int bg(char *args[])
     if (argCount != 2)
     {
         fprintf(stderr, "Usage: fg <job number>\n");
+        exitCode = -1;
         return 0;
     }
     int jobIndexLen = strlen(args[1]);
@@ -87,6 +90,7 @@ int bg(char *args[])
         if (!isdigit(args[1][i]))
         {
             fprintf(stderr, "<job number> must be an integer\n");
+            exitCode = -1;
             return 0;
         }
     
@@ -95,6 +99,7 @@ int bg(char *args[])
     if (jobIndex > childCount)
     {
         fprintf(stderr, "No such process\n");
+        exitCode = -1;
         return 0;
     }
 
@@ -114,6 +119,7 @@ int cash_setenv(char *args[])
     if (argCount == 1 || argCount > 3)
     {
         fprintf(stderr, "Usage: setenv var [value]\n");
+        exitCode = -1;
         return 0;
     }
 
@@ -133,6 +139,7 @@ int cash_unsetenv(char *args[])
     if (argCount != 2)
     {
         fprintf(stderr, "Usage: unsetenv var\n");
+        exitCode = -1;
         return 0;
     }
 
@@ -174,7 +181,10 @@ int cd(char *args[])
     else
         code = chdir(LOC);
     if(code) // Some invalid location
+    {
+        exitCode = -1;
         strcpy(PREV_LOC, temp);
+    }
     return code;
 }
 
@@ -204,7 +214,10 @@ int fExec(char *args[])
     pid_t pid = fork();
     fgP = 1;
     if (pid < 0)
+    {
+        exitCode = -1;
         return -1;
+    }
 
     // In the child fork, execute the command
     if (pid == 0)
@@ -222,6 +235,7 @@ int fExec(char *args[])
         if(waitpid(pid, &status, WUNTRACED) > 0)
             if(WIFSTOPPED(status))
                 insertChild(pid, args[0]);
+        exitCode = WEXITSTATUS(status) ? -1 : 1;
         fgP = 0;
     }
     return 0;
@@ -237,6 +251,7 @@ int fg(char *args[])
     if (argCount != 2)
     {
         fprintf(stderr, "Usage: fg <job number>\n");
+        exitCode = -1;
         return 0;
     }
     int jobIndexLen = strlen(args[1]);
@@ -244,6 +259,7 @@ int fg(char *args[])
         if (!isdigit(args[1][i]))
         {
             fprintf(stderr, "<job number> must be an integer\n");
+            exitCode = -1;
             return 0;
         }
     
@@ -252,6 +268,7 @@ int fg(char *args[])
     if (jobIndex > childCount)
     {
         fprintf(stderr, "No such process\n");
+        exitCode = -1;
         return 0;
     }
 
@@ -280,6 +297,7 @@ int fg(char *args[])
         signal(SIGTTIN, SIG_DFL);
         // Print error message and return from the function.
         perrorHandle(0);
+        exitCode = -1;
         return -1;
     }
     // Telling the job to resume and handling errors (same as above)
@@ -289,6 +307,7 @@ int fg(char *args[])
         signal(SIGTTOU, SIG_DFL);
         signal(SIGTTIN, SIG_DFL);
         perrorHandle(0);
+        exitCode = -1;
         return -1;
     }
 
@@ -298,6 +317,8 @@ int fg(char *args[])
     if(waitpid(pid, &status, WUNTRACED) > 0)
         if(WIFSTOPPED(status))
             insertChild(pid, pName);
+    
+    exitCode = WEXITSTATUS(status) ? -1 : 1;
 
     // Since the foreground process has been exitted from, set the flag back to 0
     fgP = 0;
@@ -306,6 +327,7 @@ int fg(char *args[])
     if(tcsetpgrp(STDIN, getpgid(0)))
     {
         fprintf(stderr, "Could not return terminal controll to the shell. Exitting the shell\n");
+        exitCode = -1;
         perrorHandle(1);
     }
     // Restore default signal handlers
@@ -328,6 +350,7 @@ int jobs()
         if (procStat == NULL)
         {
             errno = ESRCH;
+            exitCode = -1;
             return -1;
         }
         fread(statRead, 100, 1, procStat);
@@ -354,6 +377,7 @@ int kjob(char *args[])
     if (argCount != 3)
     {
         fprintf(stderr, "Usage: kjob <job number> <signal number>\n");
+        exitCode = -1;
         return 0;
     }
 
@@ -363,6 +387,7 @@ int kjob(char *args[])
         if (!isdigit(args[1][i]))
         {
             fprintf(stderr, "<job number> must be an integer\n");
+            exitCode = -1;
             return 0;
         }
     // If 2nd argument is not an integer
@@ -371,6 +396,7 @@ int kjob(char *args[])
         if (!isdigit(args[2][i]))
         {
             fprintf(stderr, "<signal number> must be an integer\n");
+            exitCode = -1;
             return 0;
         }
 
@@ -381,6 +407,7 @@ int kjob(char *args[])
     if (jobIndex > childCount)
     {
         fprintf(stderr, "No such process\n");
+        exitCode = -1;
         return 0;
     }
 
@@ -389,6 +416,7 @@ int kjob(char *args[])
     if (pid < 1)
     {
         fprintf(stderr, "No such process\n");
+        exitCode = -1;
         return 0;
     }
 
@@ -534,7 +562,10 @@ int ls(char *args[], char wRedir)
 
             lsDirStream = opendir(DIR_PATH);
             if (lsDirStream == NULL)
+            {
+                exitCode = -1;
                 return -1;
+            }
             if (dirCount > 1)
                 printf("%s:\n", DIR_PATH);
 
@@ -548,7 +579,10 @@ int ls(char *args[], char wRedir)
                     sprintf(FILE_PATH, "%s/%s", DIR_PATH, lsDirRecon->d_name);
                     struct stat fileStat;
                     if (lstat(FILE_PATH, &fileStat))
+                    {
+                        exitCode = -1;
                         return -1;
+                    }
                     char hiddenFlag = (lsDirRecon->d_name[0] == '.');
                     if ((aFlag && hiddenFlag) || (!hiddenFlag))
                     {
@@ -569,7 +603,10 @@ int ls(char *args[], char wRedir)
             // Actual printing logic
             lsDirStream = opendir(DIR_PATH);
             if (lsDirStream == NULL)
+            {
+                exitCode = -1;
                 return -1;
+            }
             if (lFlag)
                 printf("total %d\n", total);
 
@@ -592,7 +629,10 @@ int ls(char *args[], char wRedir)
                     sprintf(FILE_PATH, "%s/%s", DIR_PATH, lsDirPrint->d_name);
                     struct stat fileStat;
                     if (lstat(FILE_PATH, &fileStat))
+                    {
+                        exitCode = -1;
                         return -1;
+                    }
                     // If -a is given, print details of all the files
                     char hiddenFlag = (lsDirPrint->d_name[0] == '.');
                     if ((hiddenFlag && aFlag) || (!hiddenFlag))
@@ -625,11 +665,13 @@ void nw_interrupt(int sleepDur)
     if (intFd < 0)
     {
         fprintf(stderr, "%s Error: Unable to read interrupt file.\n", SHELL_NAME);
+        exitCode = -1;
         return;
     }
     if (read(intFd, interruptInfo, MAX_STAT_LEN - 1) < 1)
     {
         fprintf(stderr, "%s Error: Unable to read interrupt file\n", SHELL_NAME);
+        exitCode = -1;
         return;
     }
     char *line = NULL;
@@ -655,6 +697,7 @@ void nw_interrupt(int sleepDur)
         if (read(intFd, interruptInfo, MAX_STAT_LEN - 1) < 1)
         {
             fprintf(stderr, "%s Error: Unable to read interrupt file\n", SHELL_NAME);
+            exitCode = -1;
             return;
         }
         lineCount = 0;
@@ -698,6 +741,7 @@ void nw_newborn(int sleepDur)
     if (nbFd < 0)
     {
         fprintf(stderr, "%s Error: Unable to read loadaverage file.\n", SHELL_NAME);
+        exitCode = -1;
         return;
     }
     // Make stdio non-blocking and non-buffered
@@ -719,6 +763,7 @@ void nw_newborn(int sleepDur)
         if (read(nbFd, newbornInfo, MAX_STAT_LEN - 1) < 1)
         {
             fprintf(stderr, "%s Error: Unable to read from /proc/loadavg\n", SHELL_NAME);
+            exitCode = -1;
             return;
         }
         len = strlen(newbornInfo);
@@ -762,6 +807,7 @@ void nightswatch(char *args[])
     if (argCount != 2 && argCount != 4)
     {
         fprintf(stderr, "Usage: nightswatch [option] <command>\n");
+        exitCode = -1;
         return;
     }
 
@@ -782,6 +828,7 @@ void nightswatch(char *args[])
         if (sleepDur == 0)
         {
             fprintf(stderr, "%s Error: Invalid interval\n", SHELL_NAME);
+            exitCode = -1;
             return;
         }
         // Make args[1] point to the file name
@@ -807,7 +854,10 @@ int overkill(char *args[])
         if(children[0].pid == -1)
             return 1;
         if (kill(children[0].pid, SIGKILL))
+        {
+            exitCode = -1;
             return 1;
+        }
     }
 
     return 0;
@@ -832,6 +882,7 @@ int pinfo(char *args[])
     if (procStat == NULL)
     {
         errno = ESRCH;
+        exitCode = -1;
         return -1;
     }
     fread(fileStatStr, MAX_STAT_LEN, 1, procStat);
@@ -868,6 +919,7 @@ void pwd()
     if (getcwd(PWD, PATH_MAX) == NULL)
     {
         fprintf(stderr, "Unable to get current directory.\n");
+        exitCode = -1;
         perrorHandle(0);
         return;
     }
