@@ -19,7 +19,7 @@ extern char fgP;
 const char success[] = "\033[1;32m:')\033[0m ";
 const char failure[] = "\033[1;31m:'(\033[0m ";
 
-char exitCode;
+int exitCode;
 
 // Temporary buffer to print arbitrary messages to the terminal
 char OSTRING[512];
@@ -77,7 +77,6 @@ int digitCount(long long x)
 // Case-wise execution of cleaned commands
 void execCommand(char *COMMAND)
 {
-    exitCode = 1;
     // Checking for IO Redirection
     int len = strlen(COMMAND);
     char redir = 0;
@@ -351,6 +350,7 @@ void handlePipes(char *inputString)
 {
     // Count the number of pipe separated commands
     int comCount = 1;
+    exitCode = 1;
     int len = strlen(inputString);
     for (int i = 0; i < len; i++)
         if (inputString[i] == '|')
@@ -420,7 +420,7 @@ void handlePipes(char *inputString)
                 char *command = commands[i];
                 execCommand(command);
                 // Exit the process on completion
-                exit(0);
+                exit(exitCode);
             }
         }
         // Close all the pipes in the parent
@@ -428,7 +428,15 @@ void handlePipes(char *inputString)
             close(fds[i]);
         // Reap all the dead child processes
         for (int i = 0; i < comCount; i++)
-            wait(NULL);
+        {
+            if(i == comCount - 1)
+            {
+                wait(&exitCode);
+                exitCode = WEXITSTATUS(exitCode);
+            }
+            else
+                wait(NULL);
+        }
     }
 }
 

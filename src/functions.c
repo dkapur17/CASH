@@ -13,7 +13,7 @@ extern char SHELL_NAME[];
 extern struct pData children[];
 extern int childCount;
 extern char fgP;
-extern char exitCode;
+extern int exitCode;
 
 char DIR_PATH[PATH_MAX + 1 - MAX_FILE_NAME];
 char FILE_PATH[PATH_MAX + 1];
