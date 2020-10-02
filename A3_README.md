@@ -63,7 +63,7 @@ A global variable called `PREV_LOC[]` is used to store the previous working dire
 
 #### Bonus Specification 2: Exit Codes
 
-A global varibale called `exitCode` is defined. It is initialized to 0 on the initial call to `generatePS()` to indicate that no command has been run yet. If `exitCode` is 0, no face is printed. At the start of `execCommand()`, `exitCode` is set to 1, which indicates a successful execution. Now, at every point that is called from `execCommand()`, wherever there is some error checking for potential problems, if the problem has occured, `exitCode` has been set to -1 to indicate failure. So, by the time `execCommand()` has been popped off the stack, if `exitCode` is still 1, a happy face is printed on the next prompt string, otherwise a sad face is printed.
+A global varibale called `exitCode` is defined. It is initialized to 0 on the initial call to `generatePS()` to indicate that no command has been run yet. If `exitCode` is 0, no face is printed. At the start of `handlePipe`, `exitCode` is set to 1, which indicates a successful execution. Now, at every point that is called from `execCommand()`, wherever there is some error checking for potential problems, if the problem has occured, `exitCode` has been set to -1 to indicate failure. So, by the time `execCommand()` has been popped off the stack, if `exitCode` is still 1, a happy face is printed on the next prompt string, otherwise a sad face is printed. In case of pipes, the last child exits with its `exitCode`, which is then captured using `wait()` and set as the parent's `exitCode`.
 
 ### Custom Commands
 
