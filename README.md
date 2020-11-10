@@ -11,4 +11,4 @@ make
 ```
 For more infomation regarding what on earth is going on, go through `A2_README.md` and `A3_README.md`
 
-** To the juniors copying my code. You're welcome :) **
+**To the juniors copying my code. You're welcome :)**
